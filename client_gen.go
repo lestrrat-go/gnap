@@ -117,6 +117,16 @@ func (c *Client) UnmarshalJSON(data []byte) error {
 	c.instanceID = nil
 	c.key = nil
 	dec := json.NewDecoder(bytes.NewReader(data))
+	tok, err := dec.Token()
+	if err != nil {
+		return errors.Wrap(err, `error reading token`)
+	}
+	switch tok := tok.(type) {
+	case json.Delim:
+		if tok != '{' {
+			return errors.Errorf(`expected '{', but got '%c'`, tok)
+		}
+	}
 LOOP:
 	for {
 		tok, err := dec.Token()
@@ -127,9 +137,8 @@ LOOP:
 		case json.Delim:
 			if tok == '}' { // End of object
 				break LOOP
-			} else if tok != '{' {
-				return errors.Errorf(`expected '{', but got '%c'`, tok)
 			}
+			return errors.Errorf(`unexpected delimiter '%c'`, tok)
 		case string:
 			switch tok {
 			case "class_id":

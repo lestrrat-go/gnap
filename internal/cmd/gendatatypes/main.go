@@ -386,6 +386,17 @@ func genType(ddef *datadef) error {
 	}
 
 	fmt.Fprintf(&buf, "\ndec := json.NewDecoder(bytes.NewReader(data))")
+	fmt.Fprintf(&buf, "\ntok, err := dec.Token()")
+	fmt.Fprintf(&buf, "\nif err != nil {")
+	fmt.Fprintf(&buf, "\nreturn errors.Wrap(err, `error reading token`)")
+	fmt.Fprintf(&buf, "\n}")
+	fmt.Fprintf(&buf, "\nswitch tok := tok.(type) {")
+	fmt.Fprintf(&buf, "\ncase json.Delim:")
+	fmt.Fprintf(&buf, "\nif tok != '{' { ")
+	fmt.Fprintf(&buf, "\nreturn errors.Errorf(`expected '{', but got '%%c'`, tok)")
+	fmt.Fprintf(&buf, "\n}")
+	fmt.Fprintf(&buf, "\n}")
+
 	fmt.Fprintf(&buf, "\nLOOP:")
 	fmt.Fprintf(&buf, "\nfor {")
 	fmt.Fprintf(&buf, "\ntok, err := dec.Token()")
@@ -396,9 +407,8 @@ func genType(ddef *datadef) error {
 	fmt.Fprintf(&buf, "\ncase json.Delim:")
 	fmt.Fprintf(&buf, "\nif tok == '}' { // End of object")
 	fmt.Fprintf(&buf, "\nbreak LOOP")
-	fmt.Fprintf(&buf, "\n} else if tok != '{' {")
-	fmt.Fprintf(&buf, "\nreturn errors.Errorf(`expected '{', but got '%%c'`, tok)")
 	fmt.Fprintf(&buf, "\n}")
+	fmt.Fprintf(&buf, "\nreturn errors.Errorf(`unexpected delimiter '%%c'`, tok)")
 	fmt.Fprintf(&buf, "\ncase string:")
 	fmt.Fprintf(&buf, "\nswitch tok {")
 	for _, fdef := range ddef.fields {
