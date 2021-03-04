@@ -100,6 +100,19 @@ func TestDataTypes(t *testing.T) {
 			datatypeRoundtrip(t, src, &expected)
 		})
 	})
+	t.Run("Client", func(t *testing.T) {
+		t.Run("String", func(t *testing.T) {
+			const src = `"client-541-ab"`
+
+			var expected gnap.Client
+			expected.SetInstanceID("client-541-ab")
+
+			t.Run("Roundtrip", func(t *testing.T) {
+				datatypeRoundtrip(t, src, &expected)
+			})
+
+		})
+	})
 	t.Run("InteractionFinish", func(t *testing.T) {
 		const src = `{"method":"redirect","nonce":"LKLTI25DK82FX4T4QFZC","uri":"https://client.example.net/return/123455"}`
 

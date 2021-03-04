@@ -25,6 +25,10 @@ type datadef struct {
 	name    string
 	fields  []*fielddef
 	comment string
+	// sometimes spec allows to use a string instead of an object, and the string
+	// is a field of the otherwise empty object. string value specifies
+	// the field name
+	allowString string
 }
 
 var types = []*datadef{
@@ -47,11 +51,11 @@ var types = []*datadef{
 			},
 			{
 				name: "client",
-				typ: "*Client",
+				typ:  "*Client",
 			},
 			{
 				name: "subject",
-				typ: "*SubjectRequest",
+				typ:  "*SubjectRequest",
 			},
 		},
 	},
@@ -60,30 +64,31 @@ var types = []*datadef{
 		fields: []*fielddef{
 			{
 				name: "subIDs",
-				typ: "[]string",
+				typ:  "[]string",
 			},
 			{
 				name: "assertions",
-				typ: "[]string",
+				typ:  "[]string",
 			},
 		},
 	},
 	{
-		name: "Client",
+		name:        "Client",
+		allowString: "instanceID",
 		fields: []*fielddef{
 			{
-				name: "instanceID",
-				pubname: "InstanceID",
+				name:     "instanceID",
+				pubname:  "InstanceID",
 				jsonname: "instance_id",
-				typ: "*string",
+				typ:      "*string",
 			},
 			{
 				name: "key",
-				typ: "*Key",
+				typ:  "*Key",
 			},
 			{
 				name: "classID",
-				typ: "*string",
+				typ:  "*string",
 			},
 		},
 	},
@@ -92,16 +97,16 @@ var types = []*datadef{
 		fields: []*fielddef{
 			{
 				name: "name",
-				typ: "*string",
+				typ:  "*string",
 			},
 			{
-				name: "uri",
+				name:    "uri",
 				pubname: "URI",
-				typ: "*string",
+				typ:     "*string",
 			},
 			{
 				name: "logo_uri",
-				typ: "*string",
+				typ:  "*string",
 			},
 		},
 	},
@@ -110,21 +115,21 @@ var types = []*datadef{
 		fields: []*fielddef{
 			{
 				name: "proof",
-				typ: "*ProofForm",
+				typ:  "*ProofForm",
 			},
 			{
-				name: "jwk",
+				name:    "jwk",
 				pubname: "JWK",
-				typ: "jwk.Key",
+				typ:     "jwk.Key",
 			},
 			{
 				name: "cert",
-				typ: "*string",
+				typ:  "*string",
 			},
 			{
-				name: "certS256",
+				name:     "certS256",
 				jsonname: "cert#S256",
-				typ: "*string",
+				typ:      "*string",
 			},
 		},
 	},
@@ -199,10 +204,10 @@ var types = []*datadef{
 				typ:  "[]string",
 			},
 			{
-				name:    "datatypes",
+				name:     "datatypes",
 				jsonname: "datatypes", // don't snake it
-				pubname: "DataTypes",
-				typ:     "[]string",
+				pubname:  "DataTypes",
+				typ:      "[]string",
 			},
 			{
 				name: "identifier",
@@ -338,13 +343,35 @@ func genType(ddef *datadef) error {
 	fmt.Fprintf(&buf, "\nvar buf bytes.Buffer")
 	fmt.Fprintf(&buf, "\nenc := json.NewEncoder(&buf)")
 	fmt.Fprintf(&buf, "\nbuf.WriteByte('{')")
-	fmt.Fprintf(&buf, "\nvar i int")
-	fmt.Fprintf(&buf, "\nfor iter := c.Iterate(ctx); iter.Next(ctx); {")
+	if fieldname := ddef.allowString; fieldname != "" {
+		fmt.Fprintf(&buf, "\nvar pairs []*mapiter.Pair")
+		fmt.Fprintf(&buf, "\nfor iter := c.Iterate(ctx); iter.Next(ctx); {")
+		fmt.Fprintf(&buf, "\npairs = append(pairs, iter.Pair())")
+		fmt.Fprintf(&buf, "\n}")
+		// dangit, we can't just translate field name to json name
+		var jsonname string
+		for _, fdef := range ddef.fields {
+			if fdef.name == fieldname {
+				jsonname = fdef.jsonname
+				break
+			}
+		}
+		fmt.Fprintf(&buf, "\nif len(pairs) == 1 && pairs[0].Key.(string) == %#v {", jsonname)
+		fmt.Fprintf(&buf, "\nreturn []byte(strconv.Quote(pairs[0].Value.(string))), nil")
+		fmt.Fprintf(&buf, "\n}")
+		fmt.Fprintf(&buf, "\nfor i, pair := range pairs {")
+	} else {
+		fmt.Fprintf(&buf, "\nvar i int")
+		fmt.Fprintf(&buf, "\nfor iter := c.Iterate(ctx); iter.Next(ctx); {")
+		fmt.Fprintf(&buf, "\npair := iter.Pair()")
+	}
+
 	fmt.Fprintf(&buf, "\nif i > 0 {")
 	fmt.Fprintf(&buf, "\nbuf.WriteByte(',')")
 	fmt.Fprintf(&buf, "\n}")
-	fmt.Fprintf(&buf, "\ni++")
-	fmt.Fprintf(&buf, "\npair := iter.Pair()")
+	if fieldname := ddef.allowString; fieldname == "" {
+		fmt.Fprintf(&buf, "\ni++")
+	}
 	fmt.Fprintf(&buf, "\nbuf.WriteString(strconv.Quote(pair.Key.(string)))")
 	fmt.Fprintf(&buf, "\nbuf.WriteByte(':')")
 
@@ -395,7 +422,18 @@ func genType(ddef *datadef) error {
 	fmt.Fprintf(&buf, "\nif tok != '{' { ")
 	fmt.Fprintf(&buf, "\nreturn errors.Errorf(`expected '{', but got '%%c'`, tok)")
 	fmt.Fprintf(&buf, "\n}")
-	fmt.Fprintf(&buf, "\n}")
+	if fieldname := ddef.allowString; fieldname != "" {
+		fmt.Fprintf(&buf, "\ncase string:")
+		fmt.Fprintf(&buf, "\nc.%s = &tok", fieldname)
+		fmt.Fprintf(&buf, "\nreturn nil")
+		fmt.Fprintf(&buf, "\ndefault:")
+		fmt.Fprintf(&buf, "\nreturn errors.Errorf(`expected '{' or string, but got '%%c'`, tok)")
+		fmt.Fprintf(&buf, "\n}")
+	} else {
+		fmt.Fprintf(&buf, "\ndefault:")
+		fmt.Fprintf(&buf, "\nreturn errors.Errorf(`expected '{', but got '%%c'`, tok)")
+		fmt.Fprintf(&buf, "\n}")
+	}
 
 	fmt.Fprintf(&buf, "\nLOOP:")
 	fmt.Fprintf(&buf, "\nfor {")

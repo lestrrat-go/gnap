@@ -115,11 +115,11 @@ func (c InteractionFinish) MarshalJSON() ([]byte, error) {
 	buf.WriteByte('{')
 	var i int
 	for iter := c.Iterate(ctx); iter.Next(ctx); {
+		pair := iter.Pair()
 		if i > 0 {
 			buf.WriteByte(',')
 		}
 		i++
-		pair := iter.Pair()
 		buf.WriteString(strconv.Quote(pair.Key.(string)))
 		buf.WriteByte(':')
 		if err := enc.Encode(pair.Value); err != nil {
@@ -145,6 +145,8 @@ func (c *InteractionFinish) UnmarshalJSON(data []byte) error {
 		if tok != '{' {
 			return errors.Errorf(`expected '{', but got '%c'`, tok)
 		}
+	default:
+		return errors.Errorf(`expected '{', but got '%c'`, tok)
 	}
 LOOP:
 	for {

@@ -95,13 +95,17 @@ func (c Client) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	buf.WriteByte('{')
-	var i int
+	var pairs []*mapiter.Pair
 	for iter := c.Iterate(ctx); iter.Next(ctx); {
+		pairs = append(pairs, iter.Pair())
+	}
+	if len(pairs) == 1 && pairs[0].Key.(string) == "instance_id" {
+		return []byte(strconv.Quote(pairs[0].Value.(string))), nil
+	}
+	for i, pair := range pairs {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
-		i++
-		pair := iter.Pair()
 		buf.WriteString(strconv.Quote(pair.Key.(string)))
 		buf.WriteByte(':')
 		if err := enc.Encode(pair.Value); err != nil {
@@ -126,6 +130,11 @@ func (c *Client) UnmarshalJSON(data []byte) error {
 		if tok != '{' {
 			return errors.Errorf(`expected '{', but got '%c'`, tok)
 		}
+	case string:
+		c.instanceID = &tok
+		return nil
+	default:
+		return errors.Errorf(`expected '{' or string, but got '%c'`, tok)
 	}
 LOOP:
 	for {
