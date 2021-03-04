@@ -16,6 +16,7 @@ type GrantRequest struct {
 	capabilities []string
 	client       *Client
 	interact     *Interaction
+	subject      *SubjectRequest
 	extraFields  map[string]interface{}
 }
 
@@ -41,6 +42,11 @@ func (c *GrantRequest) Get(key string) (interface{}, bool) {
 			return nil, false
 		}
 		return c.interact, true
+	case "subject":
+		if c.subject == nil {
+			return nil, false
+		}
+		return c.subject, true
 	default:
 		if c.extraFields == nil {
 			return nil, false
@@ -76,6 +82,12 @@ func (c *GrantRequest) Set(key string, value interface{}) error {
 		} else {
 			return errors.Errorf(`invalid type for "interact" (%T)`, value)
 		}
+	case "subject":
+		if v, ok := value.(*SubjectRequest); ok {
+			c.subject = v
+		} else {
+			return errors.Errorf(`invalid type for "subject" (%T)`, value)
+		}
 	default:
 		if c.extraFields == nil {
 			c.extraFields = make(map[string]interface{})
@@ -99,6 +111,10 @@ func (c *GrantRequest) SetClient(v *Client) {
 
 func (c *GrantRequest) SetInteract(v *Interaction) {
 	c.interact = v
+}
+
+func (c *GrantRequest) SetSubject(v *SubjectRequest) {
+	c.subject = v
 }
 
 func (c GrantRequest) MarshalJSON() ([]byte, error) {
@@ -136,6 +152,7 @@ func (c *GrantRequest) UnmarshalJSON(data []byte) error {
 	c.capabilities = nil
 	c.client = nil
 	c.interact = nil
+	c.subject = nil
 	dec := json.NewDecoder(bytes.NewReader(data))
 LOOP:
 	for {
@@ -180,6 +197,10 @@ LOOP:
 				if err := dec.Decode(&(c.interact)); err != nil {
 					return errors.Wrap(err, `error reading interact`)
 				}
+			case "subject":
+				if err := dec.Decode(&(c.subject)); err != nil {
+					return errors.Wrap(err, `error reading subject`)
+				}
 			default:
 				var tmp interface{}
 				if err := dec.Decode(&tmp); err != nil {
@@ -208,6 +229,9 @@ func (c *GrantRequest) makePairs() []*mapiter.Pair {
 	}
 	if tmp := c.interact; tmp != nil {
 		pairs = append(pairs, &mapiter.Pair{Key: "interact", Value: *tmp})
+	}
+	if tmp := c.subject; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "subject", Value: *tmp})
 	}
 	var extraKeys []string
 	for k := range c.extraFields {

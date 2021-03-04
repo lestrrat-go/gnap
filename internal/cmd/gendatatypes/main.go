@@ -49,6 +49,23 @@ var types = []*datadef{
 				name: "client",
 				typ: "*Client",
 			},
+			{
+				name: "subject",
+				typ: "*SubjectRequest",
+			},
+		},
+	},
+	{
+		name: "SubjectRequest",
+		fields: []*fielddef{
+			{
+				name: "subIDs",
+				typ: "[]string",
+			},
+			{
+				name: "assertions",
+				typ: "[]string",
+			},
 		},
 	},
 	{
