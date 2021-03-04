@@ -48,6 +48,29 @@ var types = []*datadef{
 		},
 	},
 	{
+		name: "Key",
+		fields: []*fielddef{
+			{
+				name: "proof",
+				typ: "*ProofForm",
+			},
+			{
+				name: "jwk",
+				pubname: "JWK",
+				typ: "jwk.Key",
+			},
+			{
+				name: "cert",
+				typ: "*string",
+			},
+			{
+				name: "certS256",
+				jsonname: "cert#S256",
+				typ: "*string",
+			},
+		},
+	},
+	{
 		name: "AccessTokenRequest",
 		fields: []*fielddef{
 			{

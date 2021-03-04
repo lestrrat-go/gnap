@@ -50,3 +50,13 @@ const (
 )
 
 type ResourceAccessReference string
+
+type ProofForm string
+const(
+	DetachedJWS ProofForm = "jwsd"
+	AttachedJWS ProofForm = "jws"
+	MutualTLS   ProofForm = "mtls"
+	Dpop        ProofForm = "dpop"
+	HTTPSig     ProofForm = "httpsig"
+	OAuthPop    ProofForm = "oauthpop"
+)
