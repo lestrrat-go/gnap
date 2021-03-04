@@ -94,16 +94,38 @@ func (c *Key) SetCert(v string) {
 	c.cert = &v
 }
 
+func (c *Key) Cert() string {
+	if c.cert == nil {
+		return ""
+	}
+	return *(c.cert)
+}
+
 func (c *Key) SetCertS256(v string) {
 	c.certS256 = &v
+}
+
+func (c *Key) CertS256() string {
+	if c.certS256 == nil {
+		return ""
+	}
+	return *(c.certS256)
 }
 
 func (c *Key) SetJWK(v jwk.Key) {
 	c.jwk = v
 }
 
+func (c *Key) JWK() jwk.Key {
+	return c.jwk
+}
+
 func (c *Key) SetProof(v *ProofForm) {
 	c.proof = v
+}
+
+func (c *Key) Proof() *ProofForm {
+	return c.proof
 }
 
 func (c Key) MarshalJSON() ([]byte, error) {

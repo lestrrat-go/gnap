@@ -65,8 +65,16 @@ func (c *Interaction) AddFinish(v ...*InteractionFinish) {
 	c.finish = append(c.finish, v...)
 }
 
+func (c *Interaction) Finish() []*InteractionFinish {
+	return c.finish
+}
+
 func (c *Interaction) AddStart(v ...string) {
 	c.start = append(c.start, v...)
+}
+
+func (c *Interaction) Start() []string {
+	return c.start
 }
 
 func (c Interaction) MarshalJSON() ([]byte, error) {

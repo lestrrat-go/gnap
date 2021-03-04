@@ -65,8 +65,16 @@ func (c *SubjectRequest) AddAssertions(v ...string) {
 	c.assertions = append(c.assertions, v...)
 }
 
+func (c *SubjectRequest) Assertions() []string {
+	return c.assertions
+}
+
 func (c *SubjectRequest) AddSubIDs(v ...string) {
 	c.subIDs = append(c.subIDs, v...)
+}
+
+func (c *SubjectRequest) SubIDs() []string {
+	return c.subIDs
 }
 
 func (c SubjectRequest) MarshalJSON() ([]byte, error) {

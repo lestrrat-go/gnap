@@ -79,12 +79,27 @@ func (c *AccessTokenRequest) AddAccess(v ...*ResourceAccess) {
 	c.access = append(c.access, v...)
 }
 
+func (c *AccessTokenRequest) Access() []*ResourceAccess {
+	return c.access
+}
+
 func (c *AccessTokenRequest) AddFlags(v ...AccessTokenAttribute) {
 	c.flags = append(c.flags, v...)
 }
 
+func (c *AccessTokenRequest) Flags() []AccessTokenAttribute {
+	return c.flags
+}
+
 func (c *AccessTokenRequest) SetLabel(v string) {
 	c.label = &v
+}
+
+func (c *AccessTokenRequest) Label() string {
+	if c.label == nil {
+		return ""
+	}
+	return *(c.label)
 }
 
 func (c AccessTokenRequest) MarshalJSON() ([]byte, error) {

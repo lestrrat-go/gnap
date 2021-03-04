@@ -83,12 +83,33 @@ func (c *ClientDisplay) SetLogoURI(v string) {
 	c.logo_uri = &v
 }
 
+func (c *ClientDisplay) LogoURI() string {
+	if c.logo_uri == nil {
+		return ""
+	}
+	return *(c.logo_uri)
+}
+
 func (c *ClientDisplay) SetName(v string) {
 	c.name = &v
 }
 
+func (c *ClientDisplay) Name() string {
+	if c.name == nil {
+		return ""
+	}
+	return *(c.name)
+}
+
 func (c *ClientDisplay) SetURI(v string) {
 	c.uri = &v
+}
+
+func (c *ClientDisplay) URI() string {
+	if c.uri == nil {
+		return ""
+	}
+	return *(c.uri)
 }
 
 func (c ClientDisplay) MarshalJSON() ([]byte, error) {

@@ -318,13 +318,19 @@ func genType(ddef *datadef) error {
 			fmt.Fprintf(&buf, "\n\nfunc (c *%s) Add%s(v ...%s) {", ddef.name, fdef.pubname, strings.TrimPrefix(fdef.typ, "[]"))
 			fmt.Fprintf(&buf, "\nc.%[1]s = append(c.%[1]s, v...)", fdef.name)
 			fmt.Fprintf(&buf, "\n}")
+
+			fmt.Fprintf(&buf, "\n\nfunc (c *%s) %s() %s {", ddef.name, fdef.pubname, fdef.typ)
+			fmt.Fprintf(&buf, "\nreturn c.%s", fdef.name)
+			fmt.Fprintf(&buf, "\n}")
 		default:
 			intyp := fdef.typ
 			var takePtr bool
+			var zeroval string
 			switch intyp {
 			case "*string", "*FinishMode":
 				intyp = strings.TrimPrefix(intyp, "*")
 				takePtr = true
+				zeroval = `""`
 			}
 
 			fmt.Fprintf(&buf, "\n\nfunc (c *%s) Set%s(v %s) {", ddef.name, fdef.pubname, intyp)
@@ -332,6 +338,17 @@ func genType(ddef *datadef) error {
 				fmt.Fprintf(&buf, "\nc.%s = &v", fdef.name)
 			} else {
 				fmt.Fprintf(&buf, "\nc.%s = v", fdef.name)
+			}
+			fmt.Fprintf(&buf, "\n}")
+
+			fmt.Fprintf(&buf, "\n\nfunc (c *%s) %s() %s {", ddef.name, fdef.pubname, intyp)
+			if !takePtr {
+				fmt.Fprintf(&buf, "\nreturn c.%s", fdef.name)
+			} else {
+				fmt.Fprintf(&buf, "\nif c.%s == nil {", fdef.name)
+				fmt.Fprintf(&buf, "\nreturn %s", zeroval)
+				fmt.Fprintf(&buf, "\n}")
+				fmt.Fprintf(&buf, "\nreturn *(c.%s)", fdef.name)
 			}
 			fmt.Fprintf(&buf, "\n}")
 		}

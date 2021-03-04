@@ -81,12 +81,30 @@ func (c *Client) SetClassID(v string) {
 	c.classID = &v
 }
 
+func (c *Client) ClassID() string {
+	if c.classID == nil {
+		return ""
+	}
+	return *(c.classID)
+}
+
 func (c *Client) SetInstanceID(v string) {
 	c.instanceID = &v
 }
 
+func (c *Client) InstanceID() string {
+	if c.instanceID == nil {
+		return ""
+	}
+	return *(c.instanceID)
+}
+
 func (c *Client) SetKey(v *Key) {
 	c.key = v
+}
+
+func (c *Client) Key() *Key {
+	return c.key
 }
 
 func (c Client) MarshalJSON() ([]byte, error) {

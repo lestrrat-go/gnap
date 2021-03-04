@@ -95,16 +95,44 @@ func (c *InteractionFinish) SetHashMethod(v string) {
 	c.hash_method = &v
 }
 
+func (c *InteractionFinish) HashMethod() string {
+	if c.hash_method == nil {
+		return ""
+	}
+	return *(c.hash_method)
+}
+
 func (c *InteractionFinish) SetMethod(v FinishMode) {
 	c.method = &v
+}
+
+func (c *InteractionFinish) Method() FinishMode {
+	if c.method == nil {
+		return ""
+	}
+	return *(c.method)
 }
 
 func (c *InteractionFinish) SetNonce(v string) {
 	c.nonce = &v
 }
 
+func (c *InteractionFinish) Nonce() string {
+	if c.nonce == nil {
+		return ""
+	}
+	return *(c.nonce)
+}
+
 func (c *InteractionFinish) SetURI(v string) {
 	c.uri = &v
+}
+
+func (c *InteractionFinish) URI() string {
+	if c.uri == nil {
+		return ""
+	}
+	return *(c.uri)
 }
 
 func (c InteractionFinish) MarshalJSON() ([]byte, error) {

@@ -101,20 +101,40 @@ func (c *GrantRequest) AddAccessTokens(v ...*AccessTokenRequest) {
 	c.accessTokens = append(c.accessTokens, v...)
 }
 
+func (c *GrantRequest) AccessTokens() []*AccessTokenRequest {
+	return c.accessTokens
+}
+
 func (c *GrantRequest) AddCapabilities(v ...string) {
 	c.capabilities = append(c.capabilities, v...)
+}
+
+func (c *GrantRequest) Capabilities() []string {
+	return c.capabilities
 }
 
 func (c *GrantRequest) SetClient(v *Client) {
 	c.client = v
 }
 
+func (c *GrantRequest) Client() *Client {
+	return c.client
+}
+
 func (c *GrantRequest) SetInteract(v *Interaction) {
 	c.interact = v
 }
 
+func (c *GrantRequest) Interact() *Interaction {
+	return c.interact
+}
+
 func (c *GrantRequest) SetSubject(v *SubjectRequest) {
 	c.subject = v
+}
+
+func (c *GrantRequest) Subject() *SubjectRequest {
+	return c.subject
 }
 
 func (c GrantRequest) MarshalJSON() ([]byte, error) {

@@ -106,20 +106,46 @@ func (c *ResourceAccess) AddActions(v ...string) {
 	c.actions = append(c.actions, v...)
 }
 
+func (c *ResourceAccess) Actions() []string {
+	return c.actions
+}
+
 func (c *ResourceAccess) AddDataTypes(v ...string) {
 	c.datatypes = append(c.datatypes, v...)
+}
+
+func (c *ResourceAccess) DataTypes() []string {
+	return c.datatypes
 }
 
 func (c *ResourceAccess) SetIdentifier(v string) {
 	c.identifier = &v
 }
 
+func (c *ResourceAccess) Identifier() string {
+	if c.identifier == nil {
+		return ""
+	}
+	return *(c.identifier)
+}
+
 func (c *ResourceAccess) AddLocations(v ...string) {
 	c.locations = append(c.locations, v...)
 }
 
+func (c *ResourceAccess) Locations() []string {
+	return c.locations
+}
+
 func (c *ResourceAccess) SetType(v string) {
 	c.typ = &v
+}
+
+func (c *ResourceAccess) Type() string {
+	if c.typ == nil {
+		return ""
+	}
+	return *(c.typ)
 }
 
 func (c ResourceAccess) MarshalJSON() ([]byte, error) {
