@@ -8,40 +8,33 @@ import (
 	"strconv"
 
 	"github.com/lestrrat-go/iter/mapiter"
-	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
 )
 
-type Key struct {
-	cert        *string
-	certS256    *string
-	jwk         jwk.Key
-	proof       *ProofForm
+type ClientDisplay struct {
+	logo_uri    *string
+	name        *string
+	uri         *string
 	extraFields map[string]interface{}
 }
 
-func (c *Key) Get(key string) (interface{}, bool) {
+func (c *ClientDisplay) Get(key string) (interface{}, bool) {
 	switch key {
-	case "cert":
-		if c.cert == nil {
+	case "logo_uri":
+		if c.logo_uri == nil {
 			return nil, false
 		}
-		return c.cert, true
-	case "cert#S256":
-		if c.certS256 == nil {
+		return c.logo_uri, true
+	case "name":
+		if c.name == nil {
 			return nil, false
 		}
-		return c.certS256, true
-	case "jwk":
-		if c.jwk == nil {
+		return c.name, true
+	case "uri":
+		if c.uri == nil {
 			return nil, false
 		}
-		return c.jwk, true
-	case "proof":
-		if c.proof == nil {
-			return nil, false
-		}
-		return c.proof, true
+		return c.uri, true
 	default:
 		if c.extraFields == nil {
 			return nil, false
@@ -51,35 +44,31 @@ func (c *Key) Get(key string) (interface{}, bool) {
 	}
 }
 
-func (c *Key) Set(key string, value interface{}) error {
+func (c *ClientDisplay) Set(key string, value interface{}) error {
 	switch key {
-	case "cert":
+	case "logo_uri":
 		if v, ok := value.(string); ok {
-			c.cert = &v
+			c.logo_uri = &v
 		} else if value == nil {
-			c.cert = nil
+			c.logo_uri = nil
 		} else {
-			return errors.Errorf(`invalid type for "cert" (%T)`, value)
+			return errors.Errorf(`invalid type for "logo_uri" (%T)`, value)
 		}
-	case "cert#S256":
+	case "name":
 		if v, ok := value.(string); ok {
-			c.certS256 = &v
+			c.name = &v
 		} else if value == nil {
-			c.certS256 = nil
+			c.name = nil
 		} else {
-			return errors.Errorf(`invalid type for "cert#S256" (%T)`, value)
+			return errors.Errorf(`invalid type for "name" (%T)`, value)
 		}
-	case "jwk":
-		if v, ok := value.(jwk.Key); ok {
-			c.jwk = v
+	case "uri":
+		if v, ok := value.(string); ok {
+			c.uri = &v
+		} else if value == nil {
+			c.uri = nil
 		} else {
-			return errors.Errorf(`invalid type for "jwk" (%T)`, value)
-		}
-	case "proof":
-		if v, ok := value.(*ProofForm); ok {
-			c.proof = v
-		} else {
-			return errors.Errorf(`invalid type for "proof" (%T)`, value)
+			return errors.Errorf(`invalid type for "uri" (%T)`, value)
 		}
 	default:
 		if c.extraFields == nil {
@@ -90,23 +79,19 @@ func (c *Key) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (c *Key) SetCert(v string) {
-	c.cert = &v
+func (c *ClientDisplay) SetLogoURI(v string) {
+	c.logo_uri = &v
 }
 
-func (c *Key) SetCertS256(v string) {
-	c.certS256 = &v
+func (c *ClientDisplay) SetName(v string) {
+	c.name = &v
 }
 
-func (c *Key) SetJWK(v jwk.Key) {
-	c.jwk = v
+func (c *ClientDisplay) SetURI(v string) {
+	c.uri = &v
 }
 
-func (c *Key) SetProof(v *ProofForm) {
-	c.proof = v
-}
-
-func (c Key) MarshalJSON() ([]byte, error) {
+func (c ClientDisplay) MarshalJSON() ([]byte, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var buf bytes.Buffer
@@ -129,11 +114,10 @@ func (c Key) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *Key) UnmarshalJSON(data []byte) error {
-	c.cert = nil
-	c.certS256 = nil
-	c.jwk = nil
-	c.proof = nil
+func (c *ClientDisplay) UnmarshalJSON(data []byte) error {
+	c.logo_uri = nil
+	c.name = nil
+	c.uri = nil
 	dec := json.NewDecoder(bytes.NewReader(data))
 LOOP:
 	for {
@@ -150,26 +134,24 @@ LOOP:
 			}
 		case string:
 			switch tok {
-			case "cert":
+			case "logo_uri":
 				var tmp string
 				if err := dec.Decode(&tmp); err != nil {
-					return errors.Wrap(err, `error reading cert`)
+					return errors.Wrap(err, `error reading logo_uri`)
 				}
-				c.cert = &tmp
-			case "cert#S256":
+				c.logo_uri = &tmp
+			case "name":
 				var tmp string
 				if err := dec.Decode(&tmp); err != nil {
-					return errors.Wrap(err, `error reading cert#S256`)
+					return errors.Wrap(err, `error reading name`)
 				}
-				c.certS256 = &tmp
-			case "jwk":
-				if err := dec.Decode(&(c.jwk)); err != nil {
-					return errors.Wrap(err, `error reading jwk`)
+				c.name = &tmp
+			case "uri":
+				var tmp string
+				if err := dec.Decode(&tmp); err != nil {
+					return errors.Wrap(err, `error reading uri`)
 				}
-			case "proof":
-				if err := dec.Decode(&(c.proof)); err != nil {
-					return errors.Wrap(err, `error reading proof`)
-				}
+				c.uri = &tmp
 			default:
 				var tmp interface{}
 				if err := dec.Decode(&tmp); err != nil {
@@ -185,16 +167,16 @@ LOOP:
 	return nil
 }
 
-func (c *Key) makePairs() []*mapiter.Pair {
+func (c *ClientDisplay) makePairs() []*mapiter.Pair {
 	var pairs []*mapiter.Pair
-	if tmp := c.cert; tmp != nil {
-		pairs = append(pairs, &mapiter.Pair{Key: "cert", Value: *tmp})
+	if tmp := c.logo_uri; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "logo_uri", Value: *tmp})
 	}
-	if tmp := c.certS256; tmp != nil {
-		pairs = append(pairs, &mapiter.Pair{Key: "cert#S256", Value: *tmp})
+	if tmp := c.name; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "name", Value: *tmp})
 	}
-	if tmp := c.proof; tmp != nil {
-		pairs = append(pairs, &mapiter.Pair{Key: "proof", Value: *tmp})
+	if tmp := c.uri; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "uri", Value: *tmp})
 	}
 	var extraKeys []string
 	for k := range c.extraFields {
@@ -210,7 +192,7 @@ func (c *Key) makePairs() []*mapiter.Pair {
 	return pairs
 }
 
-func (c *Key) Iterate(ctx context.Context) mapiter.Iterator {
+func (c *ClientDisplay) Iterate(ctx context.Context) mapiter.Iterator {
 	pairs := c.makePairs()
 	ch := make(chan *mapiter.Pair, len(pairs))
 	go func(ctx context.Context, ch chan *mapiter.Pair, pairs []*mapiter.Pair) {

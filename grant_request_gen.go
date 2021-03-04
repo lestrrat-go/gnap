@@ -14,6 +14,7 @@ import (
 type GrantRequest struct {
 	accessTokens []*AccessTokenRequest
 	capabilities []string
+	client       *Client
 	interact     *Interaction
 	extraFields  map[string]interface{}
 }
@@ -30,6 +31,11 @@ func (c *GrantRequest) Get(key string) (interface{}, bool) {
 			return nil, false
 		}
 		return c.capabilities, true
+	case "client":
+		if c.client == nil {
+			return nil, false
+		}
+		return c.client, true
 	case "interact":
 		if c.interact == nil {
 			return nil, false
@@ -58,6 +64,12 @@ func (c *GrantRequest) Set(key string, value interface{}) error {
 		} else {
 			return errors.Errorf(`invalid type for "capabilities" (%T)`, value)
 		}
+	case "client":
+		if v, ok := value.(*Client); ok {
+			c.client = v
+		} else {
+			return errors.Errorf(`invalid type for "client" (%T)`, value)
+		}
 	case "interact":
 		if v, ok := value.(*Interaction); ok {
 			c.interact = v
@@ -79,6 +91,10 @@ func (c *GrantRequest) AddAccessTokens(v ...*AccessTokenRequest) {
 
 func (c *GrantRequest) AddCapabilities(v ...string) {
 	c.capabilities = append(c.capabilities, v...)
+}
+
+func (c *GrantRequest) SetClient(v *Client) {
+	c.client = v
 }
 
 func (c *GrantRequest) SetInteract(v *Interaction) {
@@ -118,6 +134,7 @@ func (c GrantRequest) MarshalJSON() ([]byte, error) {
 func (c *GrantRequest) UnmarshalJSON(data []byte) error {
 	c.accessTokens = nil
 	c.capabilities = nil
+	c.client = nil
 	c.interact = nil
 	dec := json.NewDecoder(bytes.NewReader(data))
 LOOP:
@@ -155,6 +172,10 @@ LOOP:
 				if err := dec.Decode(&(c.capabilities)); err != nil {
 					return errors.Wrap(err, `error reading capabilities`)
 				}
+			case "client":
+				if err := dec.Decode(&(c.client)); err != nil {
+					return errors.Wrap(err, `error reading client`)
+				}
 			case "interact":
 				if err := dec.Decode(&(c.interact)); err != nil {
 					return errors.Wrap(err, `error reading interact`)
@@ -181,6 +202,9 @@ func (c *GrantRequest) makePairs() []*mapiter.Pair {
 	}
 	if tmp := c.capabilities; len(tmp) > 0 {
 		pairs = append(pairs, &mapiter.Pair{Key: "capabilities", Value: tmp})
+	}
+	if tmp := c.client; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "client", Value: *tmp})
 	}
 	if tmp := c.interact; tmp != nil {
 		pairs = append(pairs, &mapiter.Pair{Key: "interact", Value: *tmp})

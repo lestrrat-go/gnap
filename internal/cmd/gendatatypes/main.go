@@ -45,6 +45,47 @@ var types = []*datadef{
 				name: "interact",
 				typ:  "*Interaction",
 			},
+			{
+				name: "client",
+				typ: "*Client",
+			},
+		},
+	},
+	{
+		name: "Client",
+		fields: []*fielddef{
+			{
+				name: "instanceID",
+				pubname: "InstanceID",
+				jsonname: "instance_id",
+				typ: "*string",
+			},
+			{
+				name: "key",
+				typ: "*Key",
+			},
+			{
+				name: "classID",
+				typ: "*string",
+			},
+		},
+	},
+	{
+		name: "ClientDisplay",
+		fields: []*fielddef{
+			{
+				name: "name",
+				typ: "*string",
+			},
+			{
+				name: "uri",
+				pubname: "URI",
+				typ: "*string",
+			},
+			{
+				name: "logo_uri",
+				typ: "*string",
+			},
 		},
 	},
 	{
@@ -142,6 +183,7 @@ var types = []*datadef{
 			},
 			{
 				name:    "datatypes",
+				jsonname: "datatypes", // don't snake it
 				pubname: "DataTypes",
 				typ:     "[]string",
 			},
@@ -171,7 +213,7 @@ func _main() error {
 				fdef.pubname = xstrings.Camel(fdef.name)
 			}
 			if fdef.jsonname == "" {
-				fdef.jsonname = strings.ToLower(fdef.pubname)
+				fdef.jsonname = xstrings.Snake(fdef.pubname)
 			}
 		}
 
