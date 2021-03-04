@@ -108,7 +108,10 @@ func TestDataTypes(t *testing.T) {
 		expected.AddActions("read")
 		expected.AddLocations("https://github.com/lestrrat-go/gnap")
 		expected.AddDataTypes("file")
+
+		//nolint:errcheck
 		expected.SetIdentifier("gnap.go")
+		//nolint:errcheck
 		expected.Set("extra", "foo")
 
 		t.Run("Roundtrip", func(t *testing.T) {
