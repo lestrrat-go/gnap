@@ -36,32 +36,44 @@ func datatypeRoundtrip(t *testing.T, src string, expected interface{}) bool {
 func TestDataTypes(t *testing.T) {
 	t.Run("GrantRequest", func(t *testing.T) {
 		t.Run("Single Access Token", func(t *testing.T) {
-			const src = `   {
-       "access_token": {
-           "access": [
-               {
-                   "type": "photo-api",
-                   "actions": [
-                       "read",
-                       "write",
-                       "dolphin"
-                   ],
-                   "locations": [
-                       "https://server.example.net/",
-                       "https://resource.local/other"
-                   ],
-                   "datatypes": [
-                       "metadata",
-                       "images"
-                   ]
-               }
-           ]
-       }
-		}`
+			const src = `{"access_token":{"access":[{"actions":["read","write","delete"],"datatypes":["metadata","images"],"locations":["https://server.example.net/","https://resource.local/other"],"type":"photo-api"}]}}`
 			var expected gnap.GrantRequest
-			if !assert.NoError(t, json.Unmarshal([]byte(src), &expected), `json.Unmarshal should succeed`) {
-				return
-			}
+			var atr1 gnap.AccessTokenRequest
+			var ra1 gnap.ResourceAccess
+			ra1.SetType("photo-api")
+			ra1.AddActions("read", "write", "delete")
+			ra1.AddLocations("https://server.example.net/", "https://resource.local/other")
+			ra1.AddDataTypes("metadata", "images")
+			atr1.AddAccess(&ra1)
+			expected.AddAccessTokens(&atr1)
+			t.Run("Roundtrip", func(t *testing.T) {
+				datatypeRoundtrip(t, src, &expected)
+			})
+		})
+		t.Run("Multiple Access Tokens", func(t *testing.T) {
+			const src = `{"access_token":[{"access":[{"actions":["read","write","delete"],"datatypes":["metadata","images"],"locations":["https://server.example.net/","https://resource.local/other"],"type":"photo-api"}]},{"access":[{"actions":["foo","bar"],"datatypes":["data","pictures","walrus whiskers"],"locations":["https://resource.other/"],"type":"walrus-access"}]}]}`
+
+			var expected gnap.GrantRequest
+			var atr1 gnap.AccessTokenRequest
+			var ra1 gnap.ResourceAccess
+			ra1.SetType("photo-api")
+			ra1.AddActions("read", "write", "delete")
+			ra1.AddLocations("https://server.example.net/", "https://resource.local/other")
+			ra1.AddDataTypes("metadata", "images")
+			atr1.AddAccess(&ra1)
+
+			var atr2 gnap.AccessTokenRequest
+			var ra2 gnap.ResourceAccess
+			ra2.SetType("walrus-access")
+			ra2.AddActions("foo", "bar")
+			ra2.AddLocations("https://resource.other/")
+			ra2.AddDataTypes("data", "pictures", "walrus whiskers")
+			atr2.AddAccess(&ra2)
+
+			expected.AddAccessTokens(&atr1, &atr2)
+			t.Run("Roundtrip", func(t *testing.T) {
+				datatypeRoundtrip(t, src, &expected)
+			})
 		})
 	})
 	t.Run("AccessTokenRequest", func(t *testing.T) {
