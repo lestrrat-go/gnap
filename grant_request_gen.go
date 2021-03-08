@@ -268,7 +268,6 @@ func (c *GrantRequest) makePairs() []*mapiter.Pair {
 	for k := range c.extraFields {
 		extraKeys = append(extraKeys, k)
 	}
-	sort.Strings(extraKeys)
 	for _, k := range extraKeys {
 		pairs = append(pairs, &mapiter.Pair{Key: k, Value: c.extraFields[k]})
 	}
