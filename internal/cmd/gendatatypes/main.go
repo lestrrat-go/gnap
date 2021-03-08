@@ -33,6 +33,46 @@ type datadef struct {
 
 var types = []*datadef{
 	{
+		name: "AccessToken",
+		fields: []*fielddef{
+			{
+				name: "value",
+				typ: "*string",
+			},
+			{ name: "bound",
+				typ: "*bool",
+			},
+			{
+				name: "label",
+				typ: "*string",
+			},
+			{
+				name: "manage",
+				typ: "*string",
+			},
+			{
+				name: "access",
+				typ: "[]ResourceAccess",
+			},
+			{
+				name: "expires_in",
+				typ: "*int64",
+			},
+			{
+				name: "key",
+				typ: "jwk.Key",
+			},
+			{
+				name: "durable",
+				typ: "*bool",
+			},
+			{
+				name: "split",
+				typ: "*bool",
+			},
+		},
+	},
+	{
 		name: "GrantRequest",
 		fields: []*fielddef{
 			{
