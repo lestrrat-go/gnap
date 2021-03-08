@@ -589,7 +589,6 @@ func genType(ddef *datadef) error {
 	fmt.Fprintf(&buf, "\nfor k := range c.extraFields {")
 	fmt.Fprintf(&buf, "\nextraKeys = append(extraKeys, k)")
 	fmt.Fprintf(&buf, "\n}")
-	fmt.Fprintf(&buf, "\nsort.Strings(extraKeys)")
 	fmt.Fprintf(&buf, "\nfor _, k := range extraKeys {")
 	fmt.Fprintf(&buf, "\npairs = append(pairs, &mapiter.Pair{Key: k, Value: c.extraFields[k]})")
 	fmt.Fprintf(&buf, "\n}")
