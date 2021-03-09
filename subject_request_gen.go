@@ -17,6 +17,10 @@ type SubjectRequest struct {
 	extraFields map[string]interface{}
 }
 
+func (c *SubjectRequest) Validate() error {
+	return nil
+}
+
 func (c *SubjectRequest) Get(key string) (interface{}, bool) {
 	switch key {
 	case "assertions":
@@ -61,16 +65,18 @@ func (c *SubjectRequest) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (c *SubjectRequest) AddAssertions(v ...string) {
+func (c *SubjectRequest) AddAssertions(v ...string) *SubjectRequest {
 	c.assertions = append(c.assertions, v...)
+	return c
 }
 
 func (c *SubjectRequest) Assertions() []string {
 	return c.assertions
 }
 
-func (c *SubjectRequest) AddSubIDs(v ...string) {
+func (c *SubjectRequest) AddSubIDs(v ...string) *SubjectRequest {
 	c.subIDs = append(c.subIDs, v...)
+	return c
 }
 
 func (c *SubjectRequest) SubIDs() []string {

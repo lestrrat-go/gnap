@@ -21,6 +21,10 @@ type ResourceAccess struct {
 	extraFields map[string]interface{}
 }
 
+func (c *ResourceAccess) Validate() error {
+	return nil
+}
+
 func (c *ResourceAccess) Get(key string) (interface{}, bool) {
 	switch key {
 	case "actions":
@@ -102,16 +106,18 @@ func (c *ResourceAccess) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (c *ResourceAccess) AddActions(v ...string) {
+func (c *ResourceAccess) AddActions(v ...string) *ResourceAccess {
 	c.actions = append(c.actions, v...)
+	return c
 }
 
 func (c *ResourceAccess) Actions() []string {
 	return c.actions
 }
 
-func (c *ResourceAccess) AddDataTypes(v ...string) {
+func (c *ResourceAccess) AddDataTypes(v ...string) *ResourceAccess {
 	c.datatypes = append(c.datatypes, v...)
+	return c
 }
 
 func (c *ResourceAccess) DataTypes() []string {
@@ -129,8 +135,9 @@ func (c *ResourceAccess) Identifier() string {
 	return *(c.identifier)
 }
 
-func (c *ResourceAccess) AddLocations(v ...string) {
+func (c *ResourceAccess) AddLocations(v ...string) *ResourceAccess {
 	c.locations = append(c.locations, v...)
+	return c
 }
 
 func (c *ResourceAccess) Locations() []string {

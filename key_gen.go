@@ -20,6 +20,10 @@ type Key struct {
 	extraFields map[string]interface{}
 }
 
+func (c *Key) Validate() error {
+	return nil
+}
+
 func (c *Key) Get(key string) (interface{}, bool) {
 	switch key {
 	case "cert":

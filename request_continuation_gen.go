@@ -11,34 +11,40 @@ import (
 	"github.com/pkg/errors"
 )
 
-type AccessTokenRequest struct {
-	access      []*ResourceAccess
-	flags       []AccessTokenAttribute
-	label       *string
+type RequestContinuation struct {
+	accessToken *AccessToken
+	uri         *string
+	wait        *int64
 	extraFields map[string]interface{}
 }
 
-func (c *AccessTokenRequest) Validate() error {
+func (c *RequestContinuation) Validate() error {
+	if c.accessToken == nil {
+		return errors.Errorf(`field "accessToken" is required`)
+	}
+	if c.uri == nil {
+		return errors.Errorf(`field "uri" is required`)
+	}
 	return nil
 }
 
-func (c *AccessTokenRequest) Get(key string) (interface{}, bool) {
+func (c *RequestContinuation) Get(key string) (interface{}, bool) {
 	switch key {
-	case "access":
-		if len(c.access) == 0 {
+	case "access_token":
+		if c.accessToken == nil {
 			return nil, false
 		}
-		return c.access, true
-	case "flags":
-		if len(c.flags) == 0 {
+		return c.accessToken, true
+	case "uri":
+		if c.uri == nil {
 			return nil, false
 		}
-		return c.flags, true
-	case "label":
-		if c.label == nil {
+		return c.uri, true
+	case "wait":
+		if c.wait == nil {
 			return nil, false
 		}
-		return c.label, true
+		return c.wait, true
 	default:
 		if c.extraFields == nil {
 			return nil, false
@@ -48,27 +54,27 @@ func (c *AccessTokenRequest) Get(key string) (interface{}, bool) {
 	}
 }
 
-func (c *AccessTokenRequest) Set(key string, value interface{}) error {
+func (c *RequestContinuation) Set(key string, value interface{}) error {
 	switch key {
-	case "access":
-		if v, ok := value.([]*ResourceAccess); ok {
-			c.access = v
+	case "access_token":
+		if v, ok := value.(*AccessToken); ok {
+			c.accessToken = v
 		} else {
-			return errors.Errorf(`invalid type for "access" (%T)`, value)
+			return errors.Errorf(`invalid type for "access_token" (%T)`, value)
 		}
-	case "flags":
-		if v, ok := value.([]AccessTokenAttribute); ok {
-			c.flags = v
-		} else {
-			return errors.Errorf(`invalid type for "flags" (%T)`, value)
-		}
-	case "label":
+	case "uri":
 		if v, ok := value.(string); ok {
-			c.label = &v
+			c.uri = &v
 		} else if value == nil {
-			c.label = nil
+			c.uri = nil
 		} else {
-			return errors.Errorf(`invalid type for "label" (%T)`, value)
+			return errors.Errorf(`invalid type for "uri" (%T)`, value)
+		}
+	case "wait":
+		if v, ok := value.(*int64); ok {
+			c.wait = v
+		} else {
+			return errors.Errorf(`invalid type for "wait" (%T)`, value)
 		}
 	default:
 		if c.extraFields == nil {
@@ -79,36 +85,34 @@ func (c *AccessTokenRequest) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (c *AccessTokenRequest) AddAccess(v ...*ResourceAccess) *AccessTokenRequest {
-	c.access = append(c.access, v...)
-	return c
+func (c *RequestContinuation) SetAccessToken(v *AccessToken) {
+	c.accessToken = v
 }
 
-func (c *AccessTokenRequest) Access() []*ResourceAccess {
-	return c.access
+func (c *RequestContinuation) AccessToken() *AccessToken {
+	return c.accessToken
 }
 
-func (c *AccessTokenRequest) AddFlags(v ...AccessTokenAttribute) *AccessTokenRequest {
-	c.flags = append(c.flags, v...)
-	return c
+func (c *RequestContinuation) SetURI(v string) {
+	c.uri = &v
 }
 
-func (c *AccessTokenRequest) Flags() []AccessTokenAttribute {
-	return c.flags
-}
-
-func (c *AccessTokenRequest) SetLabel(v string) {
-	c.label = &v
-}
-
-func (c *AccessTokenRequest) Label() string {
-	if c.label == nil {
+func (c *RequestContinuation) URI() string {
+	if c.uri == nil {
 		return ""
 	}
-	return *(c.label)
+	return *(c.uri)
 }
 
-func (c AccessTokenRequest) MarshalJSON() ([]byte, error) {
+func (c *RequestContinuation) SetWait(v *int64) {
+	c.wait = v
+}
+
+func (c *RequestContinuation) Wait() *int64 {
+	return c.wait
+}
+
+func (c RequestContinuation) MarshalJSON() ([]byte, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var buf bytes.Buffer
@@ -131,10 +135,10 @@ func (c AccessTokenRequest) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *AccessTokenRequest) UnmarshalJSON(data []byte) error {
-	c.access = nil
-	c.flags = nil
-	c.label = nil
+func (c *RequestContinuation) UnmarshalJSON(data []byte) error {
+	c.accessToken = nil
+	c.uri = nil
+	c.wait = nil
 	dec := json.NewDecoder(bytes.NewReader(data))
 	tok, err := dec.Token()
 	if err != nil {
@@ -162,20 +166,20 @@ LOOP:
 			return errors.Errorf(`unexpected delimiter '%c'`, tok)
 		case string:
 			switch tok {
-			case "access":
-				if err := dec.Decode(&(c.access)); err != nil {
-					return errors.Wrap(err, `error reading access`)
+			case "access_token":
+				if err := dec.Decode(&(c.accessToken)); err != nil {
+					return errors.Wrap(err, `error reading access_token`)
 				}
-			case "flags":
-				if err := dec.Decode(&(c.flags)); err != nil {
-					return errors.Wrap(err, `error reading flags`)
-				}
-			case "label":
+			case "uri":
 				var tmp string
 				if err := dec.Decode(&tmp); err != nil {
-					return errors.Wrap(err, `error reading label`)
+					return errors.Wrap(err, `error reading uri`)
 				}
-				c.label = &tmp
+				c.uri = &tmp
+			case "wait":
+				if err := dec.Decode(&(c.wait)); err != nil {
+					return errors.Wrap(err, `error reading wait`)
+				}
 			default:
 				var tmp interface{}
 				if err := dec.Decode(&tmp); err != nil {
@@ -191,16 +195,16 @@ LOOP:
 	return nil
 }
 
-func (c *AccessTokenRequest) makePairs() []*mapiter.Pair {
+func (c *RequestContinuation) makePairs() []*mapiter.Pair {
 	var pairs []*mapiter.Pair
-	if tmp := c.access; len(tmp) > 0 {
-		pairs = append(pairs, &mapiter.Pair{Key: "access", Value: tmp})
+	if tmp := c.accessToken; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "access_token", Value: *tmp})
 	}
-	if tmp := c.flags; len(tmp) > 0 {
-		pairs = append(pairs, &mapiter.Pair{Key: "flags", Value: tmp})
+	if tmp := c.uri; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "uri", Value: *tmp})
 	}
-	if tmp := c.label; tmp != nil {
-		pairs = append(pairs, &mapiter.Pair{Key: "label", Value: *tmp})
+	if tmp := c.wait; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "wait", Value: *tmp})
 	}
 	var extraKeys []string
 	for k := range c.extraFields {
@@ -215,7 +219,7 @@ func (c *AccessTokenRequest) makePairs() []*mapiter.Pair {
 	return pairs
 }
 
-func (c *AccessTokenRequest) Iterate(ctx context.Context) mapiter.Iterator {
+func (c *RequestContinuation) Iterate(ctx context.Context) mapiter.Iterator {
 	pairs := c.makePairs()
 	ch := make(chan *mapiter.Pair, len(pairs))
 	go func(ctx context.Context, ch chan *mapiter.Pair, pairs []*mapiter.Pair) {

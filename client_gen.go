@@ -18,6 +18,13 @@ type Client struct {
 	extraFields map[string]interface{}
 }
 
+func (c *Client) Validate() error {
+	if c.key == nil {
+		return errors.Errorf(`field "key" is required`)
+	}
+	return nil
+}
+
 func (c *Client) Get(key string) (interface{}, bool) {
 	switch key {
 	case "class_id":

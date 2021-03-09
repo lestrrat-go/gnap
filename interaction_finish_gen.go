@@ -19,6 +19,19 @@ type InteractionFinish struct {
 	extraFields map[string]interface{}
 }
 
+func (c *InteractionFinish) Validate() error {
+	if c.method == nil {
+		return errors.Errorf(`field "method" is required`)
+	}
+	if c.nonce == nil {
+		return errors.Errorf(`field "nonce" is required`)
+	}
+	if c.uri == nil {
+		return errors.Errorf(`field "uri" is required`)
+	}
+	return nil
+}
+
 func (c *InteractionFinish) Get(key string) (interface{}, bool) {
 	switch key {
 	case "hash_method":

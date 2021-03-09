@@ -11,34 +11,31 @@ import (
 	"github.com/pkg/errors"
 )
 
-type AccessTokenRequest struct {
-	access      []*ResourceAccess
-	flags       []AccessTokenAttribute
-	label       *string
+type UserCode struct {
+	code        *string
+	url         *string
 	extraFields map[string]interface{}
 }
 
-func (c *AccessTokenRequest) Validate() error {
+func (c *UserCode) Validate() error {
+	if c.code == nil {
+		return errors.Errorf(`field "code" is required`)
+	}
 	return nil
 }
 
-func (c *AccessTokenRequest) Get(key string) (interface{}, bool) {
+func (c *UserCode) Get(key string) (interface{}, bool) {
 	switch key {
-	case "access":
-		if len(c.access) == 0 {
+	case "code":
+		if c.code == nil {
 			return nil, false
 		}
-		return c.access, true
-	case "flags":
-		if len(c.flags) == 0 {
+		return c.code, true
+	case "url":
+		if c.url == nil {
 			return nil, false
 		}
-		return c.flags, true
-	case "label":
-		if c.label == nil {
-			return nil, false
-		}
-		return c.label, true
+		return c.url, true
 	default:
 		if c.extraFields == nil {
 			return nil, false
@@ -48,27 +45,23 @@ func (c *AccessTokenRequest) Get(key string) (interface{}, bool) {
 	}
 }
 
-func (c *AccessTokenRequest) Set(key string, value interface{}) error {
+func (c *UserCode) Set(key string, value interface{}) error {
 	switch key {
-	case "access":
-		if v, ok := value.([]*ResourceAccess); ok {
-			c.access = v
-		} else {
-			return errors.Errorf(`invalid type for "access" (%T)`, value)
-		}
-	case "flags":
-		if v, ok := value.([]AccessTokenAttribute); ok {
-			c.flags = v
-		} else {
-			return errors.Errorf(`invalid type for "flags" (%T)`, value)
-		}
-	case "label":
+	case "code":
 		if v, ok := value.(string); ok {
-			c.label = &v
+			c.code = &v
 		} else if value == nil {
-			c.label = nil
+			c.code = nil
 		} else {
-			return errors.Errorf(`invalid type for "label" (%T)`, value)
+			return errors.Errorf(`invalid type for "code" (%T)`, value)
+		}
+	case "url":
+		if v, ok := value.(string); ok {
+			c.url = &v
+		} else if value == nil {
+			c.url = nil
+		} else {
+			return errors.Errorf(`invalid type for "url" (%T)`, value)
 		}
 	default:
 		if c.extraFields == nil {
@@ -79,36 +72,29 @@ func (c *AccessTokenRequest) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (c *AccessTokenRequest) AddAccess(v ...*ResourceAccess) *AccessTokenRequest {
-	c.access = append(c.access, v...)
-	return c
+func (c *UserCode) SetCode(v string) {
+	c.code = &v
 }
 
-func (c *AccessTokenRequest) Access() []*ResourceAccess {
-	return c.access
-}
-
-func (c *AccessTokenRequest) AddFlags(v ...AccessTokenAttribute) *AccessTokenRequest {
-	c.flags = append(c.flags, v...)
-	return c
-}
-
-func (c *AccessTokenRequest) Flags() []AccessTokenAttribute {
-	return c.flags
-}
-
-func (c *AccessTokenRequest) SetLabel(v string) {
-	c.label = &v
-}
-
-func (c *AccessTokenRequest) Label() string {
-	if c.label == nil {
+func (c *UserCode) Code() string {
+	if c.code == nil {
 		return ""
 	}
-	return *(c.label)
+	return *(c.code)
 }
 
-func (c AccessTokenRequest) MarshalJSON() ([]byte, error) {
+func (c *UserCode) SetURL(v string) {
+	c.url = &v
+}
+
+func (c *UserCode) URL() string {
+	if c.url == nil {
+		return ""
+	}
+	return *(c.url)
+}
+
+func (c UserCode) MarshalJSON() ([]byte, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var buf bytes.Buffer
@@ -131,10 +117,9 @@ func (c AccessTokenRequest) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *AccessTokenRequest) UnmarshalJSON(data []byte) error {
-	c.access = nil
-	c.flags = nil
-	c.label = nil
+func (c *UserCode) UnmarshalJSON(data []byte) error {
+	c.code = nil
+	c.url = nil
 	dec := json.NewDecoder(bytes.NewReader(data))
 	tok, err := dec.Token()
 	if err != nil {
@@ -162,20 +147,18 @@ LOOP:
 			return errors.Errorf(`unexpected delimiter '%c'`, tok)
 		case string:
 			switch tok {
-			case "access":
-				if err := dec.Decode(&(c.access)); err != nil {
-					return errors.Wrap(err, `error reading access`)
-				}
-			case "flags":
-				if err := dec.Decode(&(c.flags)); err != nil {
-					return errors.Wrap(err, `error reading flags`)
-				}
-			case "label":
+			case "code":
 				var tmp string
 				if err := dec.Decode(&tmp); err != nil {
-					return errors.Wrap(err, `error reading label`)
+					return errors.Wrap(err, `error reading code`)
 				}
-				c.label = &tmp
+				c.code = &tmp
+			case "url":
+				var tmp string
+				if err := dec.Decode(&tmp); err != nil {
+					return errors.Wrap(err, `error reading url`)
+				}
+				c.url = &tmp
 			default:
 				var tmp interface{}
 				if err := dec.Decode(&tmp); err != nil {
@@ -191,16 +174,13 @@ LOOP:
 	return nil
 }
 
-func (c *AccessTokenRequest) makePairs() []*mapiter.Pair {
+func (c *UserCode) makePairs() []*mapiter.Pair {
 	var pairs []*mapiter.Pair
-	if tmp := c.access; len(tmp) > 0 {
-		pairs = append(pairs, &mapiter.Pair{Key: "access", Value: tmp})
+	if tmp := c.code; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "code", Value: *tmp})
 	}
-	if tmp := c.flags; len(tmp) > 0 {
-		pairs = append(pairs, &mapiter.Pair{Key: "flags", Value: tmp})
-	}
-	if tmp := c.label; tmp != nil {
-		pairs = append(pairs, &mapiter.Pair{Key: "label", Value: *tmp})
+	if tmp := c.url; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "url", Value: *tmp})
 	}
 	var extraKeys []string
 	for k := range c.extraFields {
@@ -215,7 +195,7 @@ func (c *AccessTokenRequest) makePairs() []*mapiter.Pair {
 	return pairs
 }
 
-func (c *AccessTokenRequest) Iterate(ctx context.Context) mapiter.Iterator {
+func (c *UserCode) Iterate(ctx context.Context) mapiter.Iterator {
 	pairs := c.makePairs()
 	ch := make(chan *mapiter.Pair, len(pairs))
 	go func(ctx context.Context, ch chan *mapiter.Pair, pairs []*mapiter.Pair) {

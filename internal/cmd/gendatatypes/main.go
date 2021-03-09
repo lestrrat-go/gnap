@@ -19,12 +19,14 @@ type fielddef struct {
 	jsonname    string
 	typ         string
 	allowSingle bool
+	required    bool
 }
 
 type datadef struct {
-	name    string
-	fields  []*fielddef
-	comment string
+	name            string
+	fields          []*fielddef
+	extraValidation string
+	comment         string
 	// sometimes spec allows to use a string instead of an object, and the string
 	// is a field of the otherwise empty object. string value specifies
 	// the field name
@@ -36,44 +38,73 @@ var types = []*datadef{
 		name: "AccessToken",
 		fields: []*fielddef{
 			{
-				name: "value",
-				typ: "*string",
+				name:     "value",
+				required: true,
+				typ:      "*string",
 			},
-			{ name: "bound",
-				typ: "*bool",
+			{
+				name: "bound",
+				typ:  "*bool",
 			},
 			{
 				name: "label",
-				typ: "*string",
+				typ:  "*string",
 			},
 			{
 				name: "manage",
-				typ: "*string",
+				typ:  "*string",
 			},
 			{
-				name: "access",
-				typ: "[]ResourceAccess",
+				name:     "access",
+				required: true,
+				typ:      "[]ResourceAccess",
 			},
 			{
 				name: "expires_in",
-				typ: "*int64",
+				typ:  "*int64",
 			},
 			{
 				name: "key",
-				typ: "jwk.Key",
+				typ:  "jwk.Key",
 			},
 			{
 				name: "durable",
-				typ: "*bool",
+				typ:  "*bool",
 			},
 			{
 				name: "split",
-				typ: "*bool",
+				typ:  "*bool",
+			},
+		},
+	},
+	{
+		name: "RequestContinuation",
+		fields: []*fielddef{
+			{
+				name:     "uri",
+				pubname:  "URI",
+				required: true,
+				typ:      "*string",
+			},
+			{
+				name:     "accessToken",
+				jsonname: "access_token",
+				required: true,
+				typ:      "*AccessToken",
+			},
+			{
+				name: "wait",
+				typ:  "*int64",
 			},
 		},
 	},
 	{
 		name: "GrantRequest",
+		extraValidation: "\nif c.access.accessTokens > 0 {" +
+			"\n  if c.label == nil {" +
+			"\n      return errors.Errorf(`\"label\" is required in \"access\" field for multiple access token requests (2.1.1)`)" +
+			"\n  }" +
+			"\n}",
 		fields: []*fielddef{
 			{
 				name:        "accessTokens",
@@ -113,6 +144,21 @@ var types = []*datadef{
 		},
 	},
 	{
+		name: "UserCode",
+		fields: []*fielddef{
+			{
+				name: "code",
+				required: true,
+				typ: "*string",
+			},
+			{
+				name: "url",
+				pubname: "URL",
+				typ: "*string",
+			},
+		},
+	},
+	{
 		name:        "Client",
 		allowString: "instanceID",
 		fields: []*fielddef{
@@ -123,8 +169,9 @@ var types = []*datadef{
 				typ:      "*string",
 			},
 			{
-				name: "key",
-				typ:  "*Key",
+				name:     "key",
+				required: true,
+				typ:      "*Key",
 			},
 			{
 				name: "classID",
@@ -194,17 +241,20 @@ var types = []*datadef{
 		name: "InteractionFinish",
 		fields: []*fielddef{
 			{
-				name: "method",
-				typ:  "*FinishMode",
+				name:     "method",
+				required: true,
+				typ:      "*FinishMode",
 			},
 			{
-				name:    "uri",
-				pubname: "URI",
-				typ:     "*string",
+				name:     "uri",
+				pubname:  "URI",
+				required: true,
+				typ:      "*string",
 			},
 			{
-				name: "nonce",
-				typ:  "*string",
+				name:     "nonce",
+				required: true,
+				typ:      "*string",
 			},
 			{
 				name:     "hash_method",
@@ -218,7 +268,7 @@ var types = []*datadef{
 		fields: []*fielddef{
 			{
 				name: "start",
-				typ:  "[]string",
+				typ:  "[]StartMode",
 			},
 			{
 				name: "finish",
@@ -301,6 +351,23 @@ func genType(ddef *datadef) error {
 	fmt.Fprintf(&buf, "\nextraFields map[string]interface{}")
 	fmt.Fprintf(&buf, "\n}")
 
+	fmt.Fprintf(&buf, "\n\nfunc (c *%s) Validate() error {", ddef.name)
+	for _, fdef := range ddef.fields {
+		if fdef.required {
+			if strings.HasPrefix(fdef.typ, "[]") {
+				fmt.Fprintf(&buf, "\nif len(c.%s) == 0 {", fdef.name)
+			} else {
+				fmt.Fprintf(&buf, "\nif c.%s == nil {", fdef.name)
+			}
+			fmt.Fprintf(&buf, "\nreturn errors.Errorf(`field %#v is required`)", fdef.name)
+			fmt.Fprintf(&buf, "\n}")
+		}
+	}
+	if code := ddef.extraValidation; code != "" {
+		fmt.Fprintf(&buf, code)
+	}
+	fmt.Fprintf(&buf, "\nreturn nil")
+	fmt.Fprintf(&buf, "\n}")
 	fmt.Fprintf(&buf, "\n\nfunc (c *%s) Get(key string) (interface{}, bool) {", ddef.name)
 	fmt.Fprintf(&buf, "\nswitch key {")
 	for _, fdef := range ddef.fields {
@@ -355,8 +422,9 @@ func genType(ddef *datadef) error {
 	for _, fdef := range ddef.fields {
 		switch {
 		case strings.HasPrefix(fdef.typ, "[]"):
-			fmt.Fprintf(&buf, "\n\nfunc (c *%s) Add%s(v ...%s) {", ddef.name, fdef.pubname, strings.TrimPrefix(fdef.typ, "[]"))
+			fmt.Fprintf(&buf, "\n\nfunc (c *%[1]s) Add%[2]s(v ...%[3]s) *%[1]s {", ddef.name, fdef.pubname, strings.TrimPrefix(fdef.typ, "[]"))
 			fmt.Fprintf(&buf, "\nc.%[1]s = append(c.%[1]s, v...)", fdef.name)
+			fmt.Fprintf(&buf, "\nreturn c")
 			fmt.Fprintf(&buf, "\n}")
 
 			fmt.Fprintf(&buf, "\n\nfunc (c *%s) %s() %s {", ddef.name, fdef.pubname, fdef.typ)

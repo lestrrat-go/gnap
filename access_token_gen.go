@@ -25,6 +25,16 @@ type AccessToken struct {
 	extraFields map[string]interface{}
 }
 
+func (c *AccessToken) Validate() error {
+	if len(c.access) == 0 {
+		return errors.Errorf(`field "access" is required`)
+	}
+	if c.value == nil {
+		return errors.Errorf(`field "value" is required`)
+	}
+	return nil
+}
+
 func (c *AccessToken) Get(key string) (interface{}, bool) {
 	switch key {
 	case "access":
@@ -152,8 +162,9 @@ func (c *AccessToken) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (c *AccessToken) AddAccess(v ...ResourceAccess) {
+func (c *AccessToken) AddAccess(v ...ResourceAccess) *AccessToken {
 	c.access = append(c.access, v...)
+	return c
 }
 
 func (c *AccessToken) Access() []ResourceAccess {

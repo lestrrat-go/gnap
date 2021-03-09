@@ -13,8 +13,12 @@ import (
 
 type Interaction struct {
 	finish      []*InteractionFinish
-	start       []string
+	start       []StartMode
 	extraFields map[string]interface{}
+}
+
+func (c *Interaction) Validate() error {
+	return nil
 }
 
 func (c *Interaction) Get(key string) (interface{}, bool) {
@@ -47,7 +51,7 @@ func (c *Interaction) Set(key string, value interface{}) error {
 			return errors.Errorf(`invalid type for "finish" (%T)`, value)
 		}
 	case "start":
-		if v, ok := value.([]string); ok {
+		if v, ok := value.([]StartMode); ok {
 			c.start = v
 		} else {
 			return errors.Errorf(`invalid type for "start" (%T)`, value)
@@ -61,19 +65,21 @@ func (c *Interaction) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (c *Interaction) AddFinish(v ...*InteractionFinish) {
+func (c *Interaction) AddFinish(v ...*InteractionFinish) *Interaction {
 	c.finish = append(c.finish, v...)
+	return c
 }
 
 func (c *Interaction) Finish() []*InteractionFinish {
 	return c.finish
 }
 
-func (c *Interaction) AddStart(v ...string) {
+func (c *Interaction) AddStart(v ...StartMode) *Interaction {
 	c.start = append(c.start, v...)
+	return c
 }
 
-func (c *Interaction) Start() []string {
+func (c *Interaction) Start() []StartMode {
 	return c.start
 }
 

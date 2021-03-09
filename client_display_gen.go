@@ -18,6 +18,10 @@ type ClientDisplay struct {
 	extraFields map[string]interface{}
 }
 
+func (c *ClientDisplay) Validate() error {
+	return nil
+}
+
 func (c *ClientDisplay) Get(key string) (interface{}, bool) {
 	switch key {
 	case "logo_uri":
