@@ -20,6 +20,10 @@ type Key struct {
 	extraFields map[string]interface{}
 }
 
+func NewKey() *Key {
+	return &Key{}
+}
+
 func (c *Key) Validate() error {
 	return nil
 }

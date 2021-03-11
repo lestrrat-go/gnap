@@ -20,10 +20,16 @@ type GrantRequest struct {
 	extraFields  map[string]interface{}
 }
 
+func NewGrantRequest() *GrantRequest {
+	return &GrantRequest{}
+}
+
 func (c *GrantRequest) Validate() error {
-	if c.access.accessTokens > 0 {
-		if c.label == nil {
-			return errors.Errorf(`"label" is required in "access" field for multiple access token requests (2.1.1)`)
+	if len(c.accessTokens) > 0 {
+		for _, access := range c.accessTokens {
+			if access.label == nil {
+				return errors.Errorf(`"label" is required in "access" field for multiple access token requests (2.1.1)`)
+			}
 		}
 	}
 	return nil

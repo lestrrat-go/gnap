@@ -18,6 +18,13 @@ type RequestContinuation struct {
 	extraFields map[string]interface{}
 }
 
+func NewRequestContinuation(accessToken AccessToken, uri string) *RequestContinuation {
+	return &RequestContinuation{
+		accessToken: &accessToken,
+		uri:         &uri,
+	}
+}
+
 func (c *RequestContinuation) Validate() error {
 	if c.accessToken == nil {
 		return errors.Errorf(`field "accessToken" is required`)

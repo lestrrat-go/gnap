@@ -18,6 +18,10 @@ type ClientDisplay struct {
 	extraFields map[string]interface{}
 }
 
+func NewClientDisplay() *ClientDisplay {
+	return &ClientDisplay{}
+}
+
 func (c *ClientDisplay) Validate() error {
 	return nil
 }

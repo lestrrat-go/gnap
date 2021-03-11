@@ -25,6 +25,13 @@ type AccessToken struct {
 	extraFields map[string]interface{}
 }
 
+func NewAccessToken(access ResourceAccess, value string) *AccessToken {
+	return &AccessToken{
+		access: []ResourceAccess{access},
+		value:  &value,
+	}
+}
+
 func (c *AccessToken) Validate() error {
 	if len(c.access) == 0 {
 		return errors.Errorf(`field "access" is required`)

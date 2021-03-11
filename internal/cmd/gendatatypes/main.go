@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,6 +32,7 @@ type datadef struct {
 	// is a field of the otherwise empty object. string value specifies
 	// the field name
 	allowString string
+	clientCmd   bool
 }
 
 var types = []*datadef{
@@ -99,10 +101,13 @@ var types = []*datadef{
 		},
 	},
 	{
-		name: "GrantRequest",
-		extraValidation: "\nif c.access.accessTokens > 0 {" +
-			"\n  if c.label == nil {" +
+		name:      "GrantRequest",
+		clientCmd: true,
+		extraValidation: "\nif len(c.accessTokens) > 0 {" +
+			"\n  for _, access := range c.accessTokens {" +
+			"\n    if access.label == nil {" +
 			"\n      return errors.Errorf(`\"label\" is required in \"access\" field for multiple access token requests (2.1.1)`)" +
+			"\n    }" +
 			"\n  }" +
 			"\n}",
 		fields: []*fielddef{
@@ -147,14 +152,14 @@ var types = []*datadef{
 		name: "UserCode",
 		fields: []*fielddef{
 			{
-				name: "code",
+				name:     "code",
 				required: true,
-				typ: "*string",
+				typ:      "*string",
 			},
 			{
-				name: "url",
+				name:    "url",
 				pubname: "URL",
-				typ: "*string",
+				typ:     "*string",
 			},
 		},
 	},
@@ -267,8 +272,9 @@ var types = []*datadef{
 		name: "Interaction",
 		fields: []*fielddef{
 			{
-				name: "start",
-				typ:  "[]StartMode",
+				name:     "start",
+				required: true,
+				typ:      "[]StartMode",
 			},
 			{
 				name: "finish",
@@ -332,12 +338,139 @@ func _main() error {
 		if err := genType(ddef); err != nil {
 			return errors.Wrapf(err, `failed to generate definitions for %s`, ddef.name)
 		}
+
+		if err := genClientCmd(ddef); err != nil {
+			return errors.Wrapf(err, `failed to generate definitions for %s`, ddef.name)
+		}
 	}
+	return nil
+}
+
+// type name, true if we need to take the pointer of the value
+func intype(v string) (string, bool) {
+	switch v {
+	case "*string", "*FinishMode":
+		return strings.TrimPrefix(v, "*"), true
+	}
+	return v, false
+}
+
+func zeroval(v string) string {
+	switch v {
+	case "string", "FinishMode":
+		return `""`
+	}
+	return "nil"
+}
+
+func qualifyPkg(v string) string {
+	nptr := strings.TrimPrefix(v, "*")
+	var isPtr bool
+	if nptr != v {
+		isPtr = true
+	}
+	for _, ddef := range types {
+		if ddef.name == nptr {
+			ret := "gnap." + nptr
+			if isPtr {
+				ret = "*" + ret
+			}
+			return ret
+		}
+	}
+	return v
+}
+
+func genClientCmd(ddef *datadef) error {
+	if !ddef.clientCmd {
+		return nil
+	}
+
+	var buf bytes.Buffer
+
+	fmt.Fprintf(&buf, "\npackage client")
+	fmt.Fprintf(&buf, "\n\ntype %sCmd struct {", ddef.name)
+	fmt.Fprintf(&buf, "\nclient *Client")
+	fmt.Fprintf(&buf, "\npayload *gnap.%s", ddef.name)
+	fmt.Fprintf(&buf, "\n}")
+
+	var requiredFields []*fielddef
+	for _, field := range ddef.fields {
+		if field.required {
+			requiredFields = append(requiredFields, field)
+		}
+	}
+
+	fmt.Fprintf(&buf, "\n\nfunc (client *Client) New%s(", ddef.name)
+	for i, field := range requiredFields {
+		if i > 0 {
+			fmt.Fprintf(&buf, ", ")
+		}
+		fmt.Fprintf(&buf, "%s %s", field.name, field.typ)
+	}
+	fmt.Fprintf(&buf, ") *%sCmd {", ddef.name)
+	fmt.Fprintf(&buf, "\nreturn &%sCmd{", ddef.name)
+	fmt.Fprintf(&buf, "\nclient: client,")
+	fmt.Fprintf(&buf, "\npayload: gnap.New%s(),", ddef.name)
+	fmt.Fprintf(&buf, "\n}")
+	fmt.Fprintf(&buf, "\n}")
+
+	for _, fdef := range ddef.fields {
+		switch {
+		case strings.HasPrefix(fdef.typ, "[]"):
+			fmt.Fprintf(&buf, "\n\nfunc (cmd *%[1]sCmd) Add%[2]s(v ...%[3]s) *%[1]sCmd {", ddef.name, fdef.pubname, qualifyPkg(strings.TrimPrefix(fdef.typ, "[]")))
+			fmt.Fprintf(&buf, "\ncmd.payload.Add%s(v...)", fdef.pubname)
+			fmt.Fprintf(&buf, "\nreturn cmd")
+			fmt.Fprintf(&buf, "\n}")
+		default:
+			intyp, _ := intype(fdef.typ)
+			fmt.Fprintf(&buf, "\n\nfunc (cmd *%[1]sCmd) %[2]s(v %[3]s) *%[1]sCmd {", ddef.name, fdef.pubname, qualifyPkg(intyp))
+			fmt.Fprintf(&buf, "\ncmd.payload.Set%s(v)", fdef.pubname)
+			fmt.Fprintf(&buf, "\nreturn cmd")
+			fmt.Fprintf(&buf, "\n}")
+		}
+	}
+
+	fmt.Fprintf(&buf, "\n\nfunc (cmd *%sCmd) Do(ctx context.Context) error {", ddef.name) // TODO: return values
+	fmt.Fprintf(&buf, "\nif err := cmd.payload.Validate(); err != nil {")
+	fmt.Fprintf(&buf, "\nerrors.Wrap(err, `failed to validate payload`)")
+	fmt.Fprintf(&buf, "\n}")
+	fmt.Fprintf(&buf, "\nvar buf bytes.Buffer")
+	fmt.Fprintf(&buf, "\nif err := json.NewEncoder(&buf).Encode(cmd.payload); err != nil {")
+	fmt.Fprintf(&buf, "\nreturn errors.Wrap(err, `failed to encode payload`)")
+	fmt.Fprintf(&buf, "\n}")
+	fmt.Fprintf(&buf, "\nreq, err := http.NewRequest(http.MethodPost, `dummy`, &buf)")
+	fmt.Fprintf(&buf, "\nif err != nil {")
+	fmt.Fprintf(&buf, "\nreturn errors.Wrap(err, `failed to create HTTP request`)")
+	fmt.Fprintf(&buf, "\n}")
+	fmt.Fprintf(&buf, "\nres, err := cmd.client.httpcl.Do(req)")
+	fmt.Fprintf(&buf, "\nif err != nil {")
+	fmt.Fprintf(&buf, "\nreturn errors.Wrap(err, `failed to complete HTTP request`)")
+	fmt.Fprintf(&buf, "\n}")
+	fmt.Fprintf(&buf, "\n_ = res")
+	fmt.Fprintf(&buf, "\nreturn nil")
+	fmt.Fprintf(&buf, "\n}")
+
+	filename := filepath.Join("client", xstrings.Snake(ddef.name)+"_cmd_gen.go")
+	if err := codegen.WriteFile(filename, &buf, codegen.WithFormatCode(true)); err != nil {
+		if cfe, ok := err.(codegen.CodeFormatError); ok {
+			fmt.Fprint(os.Stderr, cfe.Source())
+		}
+		return errors.Wrapf(err, `failed to write to %s`, filename)
+	}
+
 	return nil
 }
 
 func genType(ddef *datadef) error {
 	var buf bytes.Buffer
+
+	var requiredFields []*fielddef
+	for _, field := range ddef.fields {
+		if field.required {
+			requiredFields = append(requiredFields, field)
+		}
+	}
 
 	fmt.Fprintf(&buf, "package gnap")
 	fmt.Fprintf(&buf, "\n\n")
@@ -349,6 +482,37 @@ func genType(ddef *datadef) error {
 		fmt.Fprintf(&buf, "\n%s %s", fdef.name, fdef.typ)
 	}
 	fmt.Fprintf(&buf, "\nextraFields map[string]interface{}")
+	fmt.Fprintf(&buf, "\n}")
+
+	fmt.Fprintf(&buf, "\n\nfunc New%s(", ddef.name)
+	for i, field := range requiredFields {
+		if i > 0 {
+			fmt.Fprintf(&buf, ", ")
+		}
+
+		intyp := field.typ
+		// If this is a pointer, accept a non-pointer version
+		intyp = strings.TrimPrefix(intyp, "*")
+
+		// If this is a slice, accept 1 element in the constructor
+		intyp = strings.TrimPrefix(intyp, "[]")
+
+		fmt.Fprintf(&buf, "%s %s", field.name, intyp)
+	}
+	fmt.Fprintf(&buf, ") *%s {", ddef.name)
+	fmt.Fprintf(&buf, "\nreturn &%s{", ddef.name)
+	for _, field := range requiredFields {
+		if strings.HasPrefix(field.typ, "[]") {
+			// If this is a slice, assign as a such
+			fmt.Fprintf(&buf, "\n%[1]s: %[2]s{%[1]s},", field.name, field.typ)
+		} else if strings.HasPrefix(field.typ, "*") {
+			// If this is a slice, assign as a such
+			fmt.Fprintf(&buf, "\n%[1]s: &%[1]s,", field.name)
+		} else {
+			fmt.Fprintf(&buf, "\n%[1]s: %[1]s,", field.name)
+		}
+	}
+	fmt.Fprintf(&buf, "\n}")
 	fmt.Fprintf(&buf, "\n}")
 
 	fmt.Fprintf(&buf, "\n\nfunc (c *%s) Validate() error {", ddef.name)
@@ -431,15 +595,8 @@ func genType(ddef *datadef) error {
 			fmt.Fprintf(&buf, "\nreturn c.%s", fdef.name)
 			fmt.Fprintf(&buf, "\n}")
 		default:
-			intyp := fdef.typ
-			var takePtr bool
-			var zeroval string
-			switch intyp {
-			case "*string", "*FinishMode":
-				intyp = strings.TrimPrefix(intyp, "*")
-				takePtr = true
-				zeroval = `""`
-			}
+			intyp, takePtr := intype(fdef.typ)
+			zv := zeroval(intyp)
 
 			fmt.Fprintf(&buf, "\n\nfunc (c *%s) Set%s(v %s) {", ddef.name, fdef.pubname, intyp)
 			if takePtr {
@@ -454,7 +611,7 @@ func genType(ddef *datadef) error {
 				fmt.Fprintf(&buf, "\nreturn c.%s", fdef.name)
 			} else {
 				fmt.Fprintf(&buf, "\nif c.%s == nil {", fdef.name)
-				fmt.Fprintf(&buf, "\nreturn %s", zeroval)
+				fmt.Fprintf(&buf, "\nreturn %s", zv)
 				fmt.Fprintf(&buf, "\n}")
 				fmt.Fprintf(&buf, "\nreturn *(c.%s)", fdef.name)
 			}

@@ -17,6 +17,12 @@ type UserCode struct {
 	extraFields map[string]interface{}
 }
 
+func NewUserCode(code string) *UserCode {
+	return &UserCode{
+		code: &code,
+	}
+}
+
 func (c *UserCode) Validate() error {
 	if c.code == nil {
 		return errors.Errorf(`field "code" is required`)

@@ -17,6 +17,10 @@ type SubjectRequest struct {
 	extraFields map[string]interface{}
 }
 
+func NewSubjectRequest() *SubjectRequest {
+	return &SubjectRequest{}
+}
+
 func (c *SubjectRequest) Validate() error {
 	return nil
 }

@@ -17,7 +17,16 @@ type Interaction struct {
 	extraFields map[string]interface{}
 }
 
+func NewInteraction(start StartMode) *Interaction {
+	return &Interaction{
+		start: []StartMode{start},
+	}
+}
+
 func (c *Interaction) Validate() error {
+	if len(c.start) == 0 {
+		return errors.Errorf(`field "start" is required`)
+	}
 	return nil
 }
 

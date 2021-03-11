@@ -21,6 +21,10 @@ type ResourceAccess struct {
 	extraFields map[string]interface{}
 }
 
+func NewResourceAccess() *ResourceAccess {
+	return &ResourceAccess{}
+}
+
 func (c *ResourceAccess) Validate() error {
 	return nil
 }

@@ -18,6 +18,10 @@ type AccessTokenRequest struct {
 	extraFields map[string]interface{}
 }
 
+func NewAccessTokenRequest() *AccessTokenRequest {
+	return &AccessTokenRequest{}
+}
+
 func (c *AccessTokenRequest) Validate() error {
 	return nil
 }

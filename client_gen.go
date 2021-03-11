@@ -18,6 +18,12 @@ type Client struct {
 	extraFields map[string]interface{}
 }
 
+func NewClient(key Key) *Client {
+	return &Client{
+		key: &key,
+	}
+}
+
 func (c *Client) Validate() error {
 	if c.key == nil {
 		return errors.Errorf(`field "key" is required`)

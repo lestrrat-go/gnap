@@ -19,6 +19,14 @@ type InteractionFinish struct {
 	extraFields map[string]interface{}
 }
 
+func NewInteractionFinish(method FinishMode, nonce string, uri string) *InteractionFinish {
+	return &InteractionFinish{
+		method: &method,
+		nonce:  &nonce,
+		uri:    &uri,
+	}
+}
+
 func (c *InteractionFinish) Validate() error {
 	if c.method == nil {
 		return errors.Errorf(`field "method" is required`)
