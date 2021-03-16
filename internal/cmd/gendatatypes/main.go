@@ -139,6 +139,12 @@ var types = []*datadef{
 		name: "GrantResponse",
 		fields: []*fielddef{
 			{
+				name: "continuation",
+				jsonname: "continue",
+				pubname: "Continue",
+				typ: "*RequestContinuation",
+			},
+			{
 				name: "error",
 				typ: "*string",
 			},

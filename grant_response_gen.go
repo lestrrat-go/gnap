@@ -12,8 +12,9 @@ import (
 )
 
 type GrantResponse struct {
-	error       *string
-	extraFields map[string]interface{}
+	continuation *RequestContinuation
+	error        *string
+	extraFields  map[string]interface{}
 }
 
 func NewGrantResponse() *GrantResponse {
@@ -26,6 +27,11 @@ func (c *GrantResponse) Validate() error {
 
 func (c *GrantResponse) Get(key string) (interface{}, bool) {
 	switch key {
+	case "continue":
+		if c.continuation == nil {
+			return nil, false
+		}
+		return c.continuation, true
 	case "error":
 		if c.error == nil {
 			return nil, false
@@ -42,6 +48,12 @@ func (c *GrantResponse) Get(key string) (interface{}, bool) {
 
 func (c *GrantResponse) Set(key string, value interface{}) error {
 	switch key {
+	case "continue":
+		if v, ok := value.(*RequestContinuation); ok {
+			c.continuation = v
+		} else {
+			return errors.Errorf(`invalid type for "continue" (%T)`, value)
+		}
 	case "error":
 		if v, ok := value.(string); ok {
 			c.error = &v
@@ -57,6 +69,14 @@ func (c *GrantResponse) Set(key string, value interface{}) error {
 		c.extraFields[key] = value
 	}
 	return nil
+}
+
+func (c *GrantResponse) SetContinue(v *RequestContinuation) {
+	c.continuation = v
+}
+
+func (c *GrantResponse) Continue() *RequestContinuation {
+	return c.continuation
 }
 
 func (c *GrantResponse) SetError(v string) {
@@ -94,6 +114,7 @@ func (c GrantResponse) MarshalJSON() ([]byte, error) {
 }
 
 func (c *GrantResponse) UnmarshalJSON(data []byte) error {
+	c.continuation = nil
 	c.error = nil
 	dec := json.NewDecoder(bytes.NewReader(data))
 	tok, err := dec.Token()
@@ -122,6 +143,10 @@ LOOP:
 			return errors.Errorf(`unexpected delimiter '%c'`, tok)
 		case string:
 			switch tok {
+			case "continue":
+				if err := dec.Decode(&(c.continuation)); err != nil {
+					return errors.Wrap(err, `error reading continue`)
+				}
 			case "error":
 				var tmp string
 				if err := dec.Decode(&tmp); err != nil {
@@ -145,6 +170,9 @@ LOOP:
 
 func (c *GrantResponse) makePairs() []*mapiter.Pair {
 	var pairs []*mapiter.Pair
+	if tmp := c.continuation; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "continue", Value: *tmp})
+	}
 	if tmp := c.error; tmp != nil {
 		pairs = append(pairs, &mapiter.Pair{Key: "error", Value: *tmp})
 	}
