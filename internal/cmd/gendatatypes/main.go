@@ -136,6 +136,15 @@ var types = []*datadef{
 		},
 	},
 	{
+		name: "GrantResponse",
+		fields: []*fielddef{
+			{
+				name: "error",
+				typ: "*string",
+			},
+		},
+	},
+	{
 		name: "SubjectRequest",
 		fields: []*fielddef{
 			{
@@ -279,6 +288,19 @@ var types = []*datadef{
 			{
 				name: "finish",
 				typ:  "[]*InteractionFinish",
+			},
+			{
+				name: "hints",
+				typ: "*InteractionHint",
+			},
+		},
+	},
+	{
+		name: "InteractionHint",
+		fields: []*fielddef{
+			{
+				name: "uiLocales",
+				typ: "[]string",
 			},
 		},
 	},
@@ -430,26 +452,6 @@ func genClientCmd(ddef *datadef) error {
 			fmt.Fprintf(&buf, "\n}")
 		}
 	}
-
-	fmt.Fprintf(&buf, "\n\nfunc (cmd *%sCmd) Do(ctx context.Context) error {", ddef.name) // TODO: return values
-	fmt.Fprintf(&buf, "\nif err := cmd.payload.Validate(); err != nil {")
-	fmt.Fprintf(&buf, "\nerrors.Wrap(err, `failed to validate payload`)")
-	fmt.Fprintf(&buf, "\n}")
-	fmt.Fprintf(&buf, "\nvar buf bytes.Buffer")
-	fmt.Fprintf(&buf, "\nif err := json.NewEncoder(&buf).Encode(cmd.payload); err != nil {")
-	fmt.Fprintf(&buf, "\nreturn errors.Wrap(err, `failed to encode payload`)")
-	fmt.Fprintf(&buf, "\n}")
-	fmt.Fprintf(&buf, "\nreq, err := http.NewRequest(http.MethodPost, `dummy`, &buf)")
-	fmt.Fprintf(&buf, "\nif err != nil {")
-	fmt.Fprintf(&buf, "\nreturn errors.Wrap(err, `failed to create HTTP request`)")
-	fmt.Fprintf(&buf, "\n}")
-	fmt.Fprintf(&buf, "\nres, err := cmd.client.httpcl.Do(req)")
-	fmt.Fprintf(&buf, "\nif err != nil {")
-	fmt.Fprintf(&buf, "\nreturn errors.Wrap(err, `failed to complete HTTP request`)")
-	fmt.Fprintf(&buf, "\n}")
-	fmt.Fprintf(&buf, "\n_ = res")
-	fmt.Fprintf(&buf, "\nreturn nil")
-	fmt.Fprintf(&buf, "\n}")
 
 	filename := filepath.Join("client", xstrings.Snake(ddef.name)+"_cmd_gen.go")
 	if err := codegen.WriteFile(filename, &buf, codegen.WithFormatCode(true)); err != nil {

@@ -11,43 +11,26 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Interaction struct {
-	finish      []*InteractionFinish
-	hints       *InteractionHint
-	start       []StartMode
+type GrantResponse struct {
+	error       *string
 	extraFields map[string]interface{}
 }
 
-func NewInteraction(start StartMode) *Interaction {
-	return &Interaction{
-		start: []StartMode{start},
-	}
+func NewGrantResponse() *GrantResponse {
+	return &GrantResponse{}
 }
 
-func (c *Interaction) Validate() error {
-	if len(c.start) == 0 {
-		return errors.Errorf(`field "start" is required`)
-	}
+func (c *GrantResponse) Validate() error {
 	return nil
 }
 
-func (c *Interaction) Get(key string) (interface{}, bool) {
+func (c *GrantResponse) Get(key string) (interface{}, bool) {
 	switch key {
-	case "finish":
-		if len(c.finish) == 0 {
+	case "error":
+		if c.error == nil {
 			return nil, false
 		}
-		return c.finish, true
-	case "hints":
-		if c.hints == nil {
-			return nil, false
-		}
-		return c.hints, true
-	case "start":
-		if len(c.start) == 0 {
-			return nil, false
-		}
-		return c.start, true
+		return c.error, true
 	default:
 		if c.extraFields == nil {
 			return nil, false
@@ -57,25 +40,15 @@ func (c *Interaction) Get(key string) (interface{}, bool) {
 	}
 }
 
-func (c *Interaction) Set(key string, value interface{}) error {
+func (c *GrantResponse) Set(key string, value interface{}) error {
 	switch key {
-	case "finish":
-		if v, ok := value.([]*InteractionFinish); ok {
-			c.finish = v
+	case "error":
+		if v, ok := value.(string); ok {
+			c.error = &v
+		} else if value == nil {
+			c.error = nil
 		} else {
-			return errors.Errorf(`invalid type for "finish" (%T)`, value)
-		}
-	case "hints":
-		if v, ok := value.(*InteractionHint); ok {
-			c.hints = v
-		} else {
-			return errors.Errorf(`invalid type for "hints" (%T)`, value)
-		}
-	case "start":
-		if v, ok := value.([]StartMode); ok {
-			c.start = v
-		} else {
-			return errors.Errorf(`invalid type for "start" (%T)`, value)
+			return errors.Errorf(`invalid type for "error" (%T)`, value)
 		}
 	default:
 		if c.extraFields == nil {
@@ -86,33 +59,18 @@ func (c *Interaction) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (c *Interaction) AddFinish(v ...*InteractionFinish) *Interaction {
-	c.finish = append(c.finish, v...)
-	return c
+func (c *GrantResponse) SetError(v string) {
+	c.error = &v
 }
 
-func (c *Interaction) Finish() []*InteractionFinish {
-	return c.finish
+func (c *GrantResponse) Error() string {
+	if c.error == nil {
+		return ""
+	}
+	return *(c.error)
 }
 
-func (c *Interaction) SetHints(v *InteractionHint) {
-	c.hints = v
-}
-
-func (c *Interaction) Hints() *InteractionHint {
-	return c.hints
-}
-
-func (c *Interaction) AddStart(v ...StartMode) *Interaction {
-	c.start = append(c.start, v...)
-	return c
-}
-
-func (c *Interaction) Start() []StartMode {
-	return c.start
-}
-
-func (c Interaction) MarshalJSON() ([]byte, error) {
+func (c GrantResponse) MarshalJSON() ([]byte, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var buf bytes.Buffer
@@ -135,10 +93,8 @@ func (c Interaction) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *Interaction) UnmarshalJSON(data []byte) error {
-	c.finish = nil
-	c.hints = nil
-	c.start = nil
+func (c *GrantResponse) UnmarshalJSON(data []byte) error {
+	c.error = nil
 	dec := json.NewDecoder(bytes.NewReader(data))
 	tok, err := dec.Token()
 	if err != nil {
@@ -166,18 +122,12 @@ LOOP:
 			return errors.Errorf(`unexpected delimiter '%c'`, tok)
 		case string:
 			switch tok {
-			case "finish":
-				if err := dec.Decode(&(c.finish)); err != nil {
-					return errors.Wrap(err, `error reading finish`)
+			case "error":
+				var tmp string
+				if err := dec.Decode(&tmp); err != nil {
+					return errors.Wrap(err, `error reading error`)
 				}
-			case "hints":
-				if err := dec.Decode(&(c.hints)); err != nil {
-					return errors.Wrap(err, `error reading hints`)
-				}
-			case "start":
-				if err := dec.Decode(&(c.start)); err != nil {
-					return errors.Wrap(err, `error reading start`)
-				}
+				c.error = &tmp
 			default:
 				var tmp interface{}
 				if err := dec.Decode(&tmp); err != nil {
@@ -193,16 +143,10 @@ LOOP:
 	return nil
 }
 
-func (c *Interaction) makePairs() []*mapiter.Pair {
+func (c *GrantResponse) makePairs() []*mapiter.Pair {
 	var pairs []*mapiter.Pair
-	if tmp := c.finish; len(tmp) > 0 {
-		pairs = append(pairs, &mapiter.Pair{Key: "finish", Value: tmp})
-	}
-	if tmp := c.hints; tmp != nil {
-		pairs = append(pairs, &mapiter.Pair{Key: "hints", Value: *tmp})
-	}
-	if tmp := c.start; len(tmp) > 0 {
-		pairs = append(pairs, &mapiter.Pair{Key: "start", Value: tmp})
+	if tmp := c.error; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "error", Value: *tmp})
 	}
 	var extraKeys []string
 	for k := range c.extraFields {
@@ -217,7 +161,7 @@ func (c *Interaction) makePairs() []*mapiter.Pair {
 	return pairs
 }
 
-func (c *Interaction) Iterate(ctx context.Context) mapiter.Iterator {
+func (c *GrantResponse) Iterate(ctx context.Context) mapiter.Iterator {
 	pairs := c.makePairs()
 	ch := make(chan *mapiter.Pair, len(pairs))
 	go func(ctx context.Context, ch chan *mapiter.Pair, pairs []*mapiter.Pair) {

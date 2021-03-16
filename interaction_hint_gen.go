@@ -11,43 +11,26 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Interaction struct {
-	finish      []*InteractionFinish
-	hints       *InteractionHint
-	start       []StartMode
+type InteractionHint struct {
+	uiLocales   []string
 	extraFields map[string]interface{}
 }
 
-func NewInteraction(start StartMode) *Interaction {
-	return &Interaction{
-		start: []StartMode{start},
-	}
+func NewInteractionHint() *InteractionHint {
+	return &InteractionHint{}
 }
 
-func (c *Interaction) Validate() error {
-	if len(c.start) == 0 {
-		return errors.Errorf(`field "start" is required`)
-	}
+func (c *InteractionHint) Validate() error {
 	return nil
 }
 
-func (c *Interaction) Get(key string) (interface{}, bool) {
+func (c *InteractionHint) Get(key string) (interface{}, bool) {
 	switch key {
-	case "finish":
-		if len(c.finish) == 0 {
+	case "ui_locales":
+		if len(c.uiLocales) == 0 {
 			return nil, false
 		}
-		return c.finish, true
-	case "hints":
-		if c.hints == nil {
-			return nil, false
-		}
-		return c.hints, true
-	case "start":
-		if len(c.start) == 0 {
-			return nil, false
-		}
-		return c.start, true
+		return c.uiLocales, true
 	default:
 		if c.extraFields == nil {
 			return nil, false
@@ -57,25 +40,13 @@ func (c *Interaction) Get(key string) (interface{}, bool) {
 	}
 }
 
-func (c *Interaction) Set(key string, value interface{}) error {
+func (c *InteractionHint) Set(key string, value interface{}) error {
 	switch key {
-	case "finish":
-		if v, ok := value.([]*InteractionFinish); ok {
-			c.finish = v
+	case "ui_locales":
+		if v, ok := value.([]string); ok {
+			c.uiLocales = v
 		} else {
-			return errors.Errorf(`invalid type for "finish" (%T)`, value)
-		}
-	case "hints":
-		if v, ok := value.(*InteractionHint); ok {
-			c.hints = v
-		} else {
-			return errors.Errorf(`invalid type for "hints" (%T)`, value)
-		}
-	case "start":
-		if v, ok := value.([]StartMode); ok {
-			c.start = v
-		} else {
-			return errors.Errorf(`invalid type for "start" (%T)`, value)
+			return errors.Errorf(`invalid type for "ui_locales" (%T)`, value)
 		}
 	default:
 		if c.extraFields == nil {
@@ -86,33 +57,16 @@ func (c *Interaction) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (c *Interaction) AddFinish(v ...*InteractionFinish) *Interaction {
-	c.finish = append(c.finish, v...)
+func (c *InteractionHint) AddUiLocales(v ...string) *InteractionHint {
+	c.uiLocales = append(c.uiLocales, v...)
 	return c
 }
 
-func (c *Interaction) Finish() []*InteractionFinish {
-	return c.finish
+func (c *InteractionHint) UiLocales() []string {
+	return c.uiLocales
 }
 
-func (c *Interaction) SetHints(v *InteractionHint) {
-	c.hints = v
-}
-
-func (c *Interaction) Hints() *InteractionHint {
-	return c.hints
-}
-
-func (c *Interaction) AddStart(v ...StartMode) *Interaction {
-	c.start = append(c.start, v...)
-	return c
-}
-
-func (c *Interaction) Start() []StartMode {
-	return c.start
-}
-
-func (c Interaction) MarshalJSON() ([]byte, error) {
+func (c InteractionHint) MarshalJSON() ([]byte, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var buf bytes.Buffer
@@ -135,10 +89,8 @@ func (c Interaction) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *Interaction) UnmarshalJSON(data []byte) error {
-	c.finish = nil
-	c.hints = nil
-	c.start = nil
+func (c *InteractionHint) UnmarshalJSON(data []byte) error {
+	c.uiLocales = nil
 	dec := json.NewDecoder(bytes.NewReader(data))
 	tok, err := dec.Token()
 	if err != nil {
@@ -166,17 +118,9 @@ LOOP:
 			return errors.Errorf(`unexpected delimiter '%c'`, tok)
 		case string:
 			switch tok {
-			case "finish":
-				if err := dec.Decode(&(c.finish)); err != nil {
-					return errors.Wrap(err, `error reading finish`)
-				}
-			case "hints":
-				if err := dec.Decode(&(c.hints)); err != nil {
-					return errors.Wrap(err, `error reading hints`)
-				}
-			case "start":
-				if err := dec.Decode(&(c.start)); err != nil {
-					return errors.Wrap(err, `error reading start`)
+			case "ui_locales":
+				if err := dec.Decode(&(c.uiLocales)); err != nil {
+					return errors.Wrap(err, `error reading ui_locales`)
 				}
 			default:
 				var tmp interface{}
@@ -193,16 +137,10 @@ LOOP:
 	return nil
 }
 
-func (c *Interaction) makePairs() []*mapiter.Pair {
+func (c *InteractionHint) makePairs() []*mapiter.Pair {
 	var pairs []*mapiter.Pair
-	if tmp := c.finish; len(tmp) > 0 {
-		pairs = append(pairs, &mapiter.Pair{Key: "finish", Value: tmp})
-	}
-	if tmp := c.hints; tmp != nil {
-		pairs = append(pairs, &mapiter.Pair{Key: "hints", Value: *tmp})
-	}
-	if tmp := c.start; len(tmp) > 0 {
-		pairs = append(pairs, &mapiter.Pair{Key: "start", Value: tmp})
+	if tmp := c.uiLocales; len(tmp) > 0 {
+		pairs = append(pairs, &mapiter.Pair{Key: "ui_locales", Value: tmp})
 	}
 	var extraKeys []string
 	for k := range c.extraFields {
@@ -217,7 +155,7 @@ func (c *Interaction) makePairs() []*mapiter.Pair {
 	return pairs
 }
 
-func (c *Interaction) Iterate(ctx context.Context) mapiter.Iterator {
+func (c *InteractionHint) Iterate(ctx context.Context) mapiter.Iterator {
 	pairs := c.makePairs()
 	ch := make(chan *mapiter.Pair, len(pairs))
 	go func(ctx context.Context, ch chan *mapiter.Pair, pairs []*mapiter.Pair) {
