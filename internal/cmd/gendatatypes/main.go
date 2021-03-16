@@ -536,7 +536,7 @@ func genType(ddef *datadef) error {
 		}
 	}
 	if code := ddef.extraValidation; code != "" {
-		fmt.Fprintf(&buf, code)
+		fmt.Fprintf(&buf, "%s", code)
 	}
 	fmt.Fprintf(&buf, "\nreturn nil")
 	fmt.Fprintf(&buf, "\n}")
