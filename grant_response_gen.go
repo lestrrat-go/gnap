@@ -12,8 +12,10 @@ import (
 )
 
 type GrantResponse struct {
+	accessToken  *AccessToken
 	continuation *RequestContinuation
 	error        *string
+	interact     *InteractionResponse
 	extraFields  map[string]interface{}
 }
 
@@ -27,6 +29,11 @@ func (c *GrantResponse) Validate() error {
 
 func (c *GrantResponse) Get(key string) (interface{}, bool) {
 	switch key {
+	case "access_token":
+		if c.accessToken == nil {
+			return nil, false
+		}
+		return c.accessToken, true
 	case "continue":
 		if c.continuation == nil {
 			return nil, false
@@ -37,6 +44,11 @@ func (c *GrantResponse) Get(key string) (interface{}, bool) {
 			return nil, false
 		}
 		return c.error, true
+	case "interact":
+		if c.interact == nil {
+			return nil, false
+		}
+		return c.interact, true
 	default:
 		if c.extraFields == nil {
 			return nil, false
@@ -48,6 +60,12 @@ func (c *GrantResponse) Get(key string) (interface{}, bool) {
 
 func (c *GrantResponse) Set(key string, value interface{}) error {
 	switch key {
+	case "access_token":
+		if v, ok := value.(*AccessToken); ok {
+			c.accessToken = v
+		} else {
+			return errors.Errorf(`invalid type for "access_token" (%T)`, value)
+		}
 	case "continue":
 		if v, ok := value.(*RequestContinuation); ok {
 			c.continuation = v
@@ -62,6 +80,12 @@ func (c *GrantResponse) Set(key string, value interface{}) error {
 		} else {
 			return errors.Errorf(`invalid type for "error" (%T)`, value)
 		}
+	case "interact":
+		if v, ok := value.(*InteractionResponse); ok {
+			c.interact = v
+		} else {
+			return errors.Errorf(`invalid type for "interact" (%T)`, value)
+		}
 	default:
 		if c.extraFields == nil {
 			c.extraFields = make(map[string]interface{})
@@ -69,6 +93,14 @@ func (c *GrantResponse) Set(key string, value interface{}) error {
 		c.extraFields[key] = value
 	}
 	return nil
+}
+
+func (c *GrantResponse) SetAccessToken(v *AccessToken) {
+	c.accessToken = v
+}
+
+func (c *GrantResponse) AccessToken() *AccessToken {
+	return c.accessToken
 }
 
 func (c *GrantResponse) SetContinue(v *RequestContinuation) {
@@ -88,6 +120,14 @@ func (c *GrantResponse) Error() string {
 		return ""
 	}
 	return *(c.error)
+}
+
+func (c *GrantResponse) SetInteract(v *InteractionResponse) {
+	c.interact = v
+}
+
+func (c *GrantResponse) Interact() *InteractionResponse {
+	return c.interact
 }
 
 func (c GrantResponse) MarshalJSON() ([]byte, error) {
@@ -114,8 +154,10 @@ func (c GrantResponse) MarshalJSON() ([]byte, error) {
 }
 
 func (c *GrantResponse) UnmarshalJSON(data []byte) error {
+	c.accessToken = nil
 	c.continuation = nil
 	c.error = nil
+	c.interact = nil
 	dec := json.NewDecoder(bytes.NewReader(data))
 	tok, err := dec.Token()
 	if err != nil {
@@ -143,6 +185,10 @@ LOOP:
 			return errors.Errorf(`unexpected delimiter '%c'`, tok)
 		case string:
 			switch tok {
+			case "access_token":
+				if err := dec.Decode(&(c.accessToken)); err != nil {
+					return errors.Wrap(err, `error reading access_token`)
+				}
 			case "continue":
 				if err := dec.Decode(&(c.continuation)); err != nil {
 					return errors.Wrap(err, `error reading continue`)
@@ -153,6 +199,10 @@ LOOP:
 					return errors.Wrap(err, `error reading error`)
 				}
 				c.error = &tmp
+			case "interact":
+				if err := dec.Decode(&(c.interact)); err != nil {
+					return errors.Wrap(err, `error reading interact`)
+				}
 			default:
 				var tmp interface{}
 				if err := dec.Decode(&tmp); err != nil {
@@ -170,11 +220,17 @@ LOOP:
 
 func (c *GrantResponse) makePairs() []*mapiter.Pair {
 	var pairs []*mapiter.Pair
+	if tmp := c.accessToken; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "access_token", Value: *tmp})
+	}
 	if tmp := c.continuation; tmp != nil {
 		pairs = append(pairs, &mapiter.Pair{Key: "continue", Value: *tmp})
 	}
 	if tmp := c.error; tmp != nil {
 		pairs = append(pairs, &mapiter.Pair{Key: "error", Value: *tmp})
+	}
+	if tmp := c.interact; tmp != nil {
+		pairs = append(pairs, &mapiter.Pair{Key: "interact", Value: *tmp})
 	}
 	var extraKeys []string
 	for k := range c.extraFields {

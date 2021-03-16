@@ -15,7 +15,7 @@ type GrantRequest struct {
 	accessTokens []*AccessTokenRequest
 	capabilities []string
 	client       *Client
-	interact     *Interaction
+	interact     *InteractionRequest
 	subject      *SubjectRequest
 	extraFields  map[string]interface{}
 }
@@ -92,7 +92,7 @@ func (c *GrantRequest) Set(key string, value interface{}) error {
 			return errors.Errorf(`invalid type for "client" (%T)`, value)
 		}
 	case "interact":
-		if v, ok := value.(*Interaction); ok {
+		if v, ok := value.(*InteractionRequest); ok {
 			c.interact = v
 		} else {
 			return errors.Errorf(`invalid type for "interact" (%T)`, value)
@@ -138,11 +138,11 @@ func (c *GrantRequest) Client() *Client {
 	return c.client
 }
 
-func (c *GrantRequest) SetInteract(v *Interaction) {
+func (c *GrantRequest) SetInteract(v *InteractionRequest) {
 	c.interact = v
 }
 
-func (c *GrantRequest) Interact() *Interaction {
+func (c *GrantRequest) Interact() *InteractionRequest {
 	return c.interact
 }
 

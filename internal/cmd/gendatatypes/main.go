@@ -90,7 +90,6 @@ var types = []*datadef{
 			},
 			{
 				name:     "accessToken",
-				jsonname: "access_token",
 				required: true,
 				typ:      "*AccessToken",
 			},
@@ -123,7 +122,7 @@ var types = []*datadef{
 			},
 			{
 				name: "interact",
-				typ:  "*Interaction",
+				typ:  "*InteractionRequest",
 			},
 			{
 				name: "client",
@@ -139,14 +138,22 @@ var types = []*datadef{
 		name: "GrantResponse",
 		fields: []*fielddef{
 			{
-				name: "continuation",
+				name:     "continuation",
 				jsonname: "continue",
-				pubname: "Continue",
-				typ: "*RequestContinuation",
+				pubname:  "Continue",
+				typ:      "*RequestContinuation",
+			},
+			{
+				name: "accessToken",
+				typ:  "*AccessToken",
+			},
+			{
+				name: "interact",
+				typ:  "*InteractionResponse",
 			},
 			{
 				name: "error",
-				typ: "*string",
+				typ:  "*string",
 			},
 		},
 	},
@@ -284,7 +291,7 @@ var types = []*datadef{
 		},
 	},
 	{
-		name: "Interaction",
+		name: "InteractionRequest",
 		fields: []*fielddef{
 			{
 				name:     "start",
@@ -297,7 +304,7 @@ var types = []*datadef{
 			},
 			{
 				name: "hints",
-				typ: "*InteractionHint",
+				typ:  "*InteractionHint",
 			},
 		},
 	},
@@ -306,7 +313,28 @@ var types = []*datadef{
 		fields: []*fielddef{
 			{
 				name: "uiLocales",
-				typ: "[]string",
+				typ:  "[]string",
+			},
+		},
+	},
+	{
+		name: "InteractionResponse",
+		fields: []*fielddef{
+			{
+				name: "redirect",
+				typ: "*string",
+			},
+			{
+				name: "app",
+				typ: "*string",
+			},
+			{
+				name: "finish",
+				typ: "*string",
+			},
+			{
+				name: "userCode",
+				typ: "*string",
 			},
 		},
 	},
